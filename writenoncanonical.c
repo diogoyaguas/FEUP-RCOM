@@ -54,7 +54,7 @@ int main(int argc, char** argv)
     newtio.c_lflag = 0;
 
     newtio.c_cc[VTIME]    = 0;   /* inter-character timer unused */
-    newtio.c_cc[VMIN]     = 5;   /* blocking read until 5 chars received */
+    newtio.c_cc[VMIN]     = 1;   /* blocking read until 1 char received */
 
   /*
     VTIME e VMIN devem ser alterados de forma a proteger com um temporizador a
@@ -78,7 +78,7 @@ int main(int argc, char** argv)
     sleep(2);
 
     while (STOP==FALSE) {       /* loop for input */
-      res = read(fd,bufread,255);   /* returns after 5 chars have been input */
+      res = read(fd,bufread,1);   /* returns after 1 char have been input */
       bufread[res]=0;               /* so we can printf... */
       printf(":%s:%d\n", bufread, res);
       if (bufread[res-1]=='\0') STOP=TRUE;
