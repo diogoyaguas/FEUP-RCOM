@@ -7,17 +7,33 @@
 #include <stdio.h>
 
 #define BAUDRATE B38400
+#define MODEMDEVICE "/dev/ttyS1"
 #define _POSIX_SOURCE 1 /* POSIX compliant source */
 #define FALSE 0
 #define TRUE 1
+#define FLAG 0x7E
+#define SETUP 0x03
+#define INPUTS_A 0x03
+#define A 0x01
+#define UA 0x07
 
 volatile int STOP=FALSE;
+
+void enviarTrama(){
+    res = write(fd, SET, s_length);
+    printf("%d bytes written BACK\n", res);
+    sleep(2);
+}
 
 int main(int argc, char** argv)
 {
     int fd,c, res;
     struct termios oldtio,newtio;
-    char buf[255];
+    char buf[255], bufread[255];
+    int i, sum = 0, speed = 0;
+    char buf[255], echo[255];
+
+    strcpy(echo,"");
 
     if ( (argc < 2) || 
   	     ((strcmp("/dev/ttyS0", argv[1])!=0) && 
@@ -50,16 +66,12 @@ int main(int argc, char** argv)
     newtio.c_lflag = 0;
 
     newtio.c_cc[VTIME]    = 0;   /* inter-character timer unused */
-    newtio.c_cc[VMIN]     = 5;   /* blocking read until 5 chars received */
-
-
+    newtio.c_cc[VMIN]     = 1;   /* blocking read until 1 char received */
 
   /* 
     VTIME e VMIN devem ser alterados de forma a proteger com um temporizador a 
-    leitura do(s) pr�ximo(s) caracter(es)
+    leitura do(s) pr�ximo(s) caracter(es)
   */
-
-
 
     tcflush(fd, TCIOFLUSH);
 
@@ -70,21 +82,81 @@ int main(int argc, char** argv)
 
     printf("New termios structure set\n");
 
+    //Receção de trama
+    enum state {INIT, F, FA, FAC, FACBCC, FACBCCF};
+    state = INIT;
+    char buffer;
 
-    while (STOP==FALSE) {       /* loop for input */
-      res = read(fd,buf,255);   /* returns after 5 chars have been input */
-      buf[res]=0;               /* so we can printf... */
-      printf(":%s:%d\n", buf, res);
-      if (buf[0]=='z') STOP=TRUE;
+    int unreceived = 1;
+    while(unreceived) {
+      res = read(fd, buffer, 1);
+      switch(state) {
+        case INIT:
+          if (buffer==FLAG)
+            state = F;
+          break;
+
+        case F:
+          if(buffer==INPUTS_A)
+            state = FA;
+          else if(buffer==FLAG)
+            state = F;
+          else state = INIT;
+          break;
+
+        case FA:
+          if(buffer==SETUP)
+            state=FAC;
+          else if(buffer==FLAG)
+            state=F;
+          else state = INIT;
+          break;
+          
+        case FAC:
+          if(buffer == (INPUTS_A^SETUP))
+            state=FACBCC;
+          else if(buffer==FLAG)
+            state=F;
+          else state = INIT;
+          break;
+
+        case FACBCC:
+          if(buffer==FLAG) {
+            state=FACBCCF;
+            unreceived = 0;
+          }
+          else state=INIT;
+          break;
+
+        default: break;
+      }
     }
 
+    //trama após receção
+    int s_length = 5;
+    unsigned char SET[s_length];
+    SET[0] = FLAG;
+    SET[4] = FLAG;
+    SET[1] = A;
+    SET[2] = UA;
+    SET[3] = SET[1] ^ SET[2];
 
+    enviarTrama();
 
+    while (STOP==FALSE) {       /* loop for input */
+      res = read(fd,buf,1);    /* returns after 5 chars have been input */
+      buf[res]=0;               /* so we can printf... */
+      if (buf[res-1]=='\0') STOP=TRUE;
+      strcat(echo, buf);
+    }
+ 
+    res = write(fd, echo, strlen(echo) + 1);
+    printf("%d bytes echoed\n", res);
+    sleep(2);
+ 
   /* 
-    O ciclo WHILE deve ser alterado de modo a respeitar o indicado no gui�o 
+    O ciclo WHILE deve ser alterado de modo a respeitar o indicado no gui�o 
   */
-
-
 
     tcsetattr(fd,TCSANOW,&oldtio);
     close(fd);
