@@ -97,7 +97,8 @@ int main(int argc, char** argv)
 
     enviarTrama();
 
-    while(1) {
+    int unreceived = 1;
+    while(unreceived) {
       res = read(fd, buffer, 1);
       switch(state) {
         case INIT:
@@ -127,8 +128,10 @@ int main(int argc, char** argv)
           else state = INIT;
           break;
         case FACBCC:
-          if(buffer==FLAG)
+          if(buffer==FLAG) {
             state=FACBCCF;
+            unreceived = 0;
+          }
           else state=INIT;
           break;
         default: break;
