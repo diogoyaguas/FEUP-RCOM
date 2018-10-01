@@ -13,8 +13,20 @@
 #define _POSIX_SOURCE 1 /* POSIX compliant source */
 #define FALSE 0
 #define TRUE 1
+#define FLAG 0x7E
+#define SETUP 0x03
+#define A 0x03
+#define RECEPTORSA 0x01
+#define UA 0x07
 
 volatile int STOP=FALSE;
+
+void enviarTrama(){
+    //mandar trama de supervisão
+    res = write(fd, SET, s_length);
+    printf("%d bytes written\n", res);
+    sleep(2);
+}
 
 int main(int argc, char** argv)
 {
@@ -68,7 +80,62 @@ int main(int argc, char** argv)
       exit(-1);
     }
 
-    printf("New termios structure set\n Write something \n");
+    printf("New termios structure set\n Establishig conection\n");
+
+    //trama
+    int s_length = 5;
+    unsigned char SET[s_length];
+    SET[0] = FLAG;
+    SET[4] = FLAG;
+    SET[1] = A;
+    SET[2] = SETUP;
+    SET[3] = SET[1] ^ SET[2];
+
+    enum state {INIT, F, FA, FAC, FACBCC, FACBCCF};
+    state = INIT;
+    char buffer;
+
+    enviarTrama();
+
+    while(1) {
+      res = read(fd, buffer, 1);
+      switch(state) {
+        case INIT:
+          if (buffer==FLAG){
+            state = F;
+          }
+          break;
+        case F:
+          if(buffer==RECPTORSA)
+            state = FA;
+          else if(buffer==FLAG)
+            state = F;
+          else state = INIT;
+          break;
+        case FA:
+          if(buffer==UA)
+            state=FAC;
+          else if(buffer==FLAG)
+            state=F;
+          else state = INIT;
+          break;
+        case FAC:
+          if(buffer == (RECPTORSA^UA))
+            state=FACBCC;
+          else if(buffer==FLAG)
+            state=F;
+          else state = INIT;
+          break;
+        case FACBCC:
+          if(buffer==FLAG)
+            state=FACBCCF;
+          else state=INIT;
+          break;
+        default: break;
+      }
+    }
+
+    printf("Write something \n");
 
     gets(buf);
 
