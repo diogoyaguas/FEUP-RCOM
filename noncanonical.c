@@ -19,19 +19,13 @@
 
 volatile int STOP=FALSE;
 
-void enviarTrama(){
-    res = write(fd, SET, s_length);
-    printf("%d bytes written BACK\n", res);
-    sleep(2);
-}
-
 int main(int argc, char** argv)
 {
     int fd,c, res;
     struct termios oldtio,newtio;
     char buf[255], bufread[255];
     int i, sum = 0, speed = 0;
-    char buf[255], echo[255];
+    char echo[255];
 
     strcpy(echo,"");
 
@@ -83,7 +77,7 @@ int main(int argc, char** argv)
     printf("New termios structure set\n");
 
     //Receção de trama
-    enum state {INIT, F, FA, FAC, FACBCC, FACBCCF};
+    enum states {INIT, F, FA, FAC, FACBCC, FACBCCF} state;
     state = INIT;
     char buffer;
 
@@ -132,6 +126,8 @@ int main(int argc, char** argv)
       }
     }
 
+    printf("Received packet \n");
+
     //trama após receção
     int s_length = 5;
     unsigned char SET[s_length];
@@ -141,7 +137,9 @@ int main(int argc, char** argv)
     SET[2] = UA;
     SET[3] = SET[1] ^ SET[2];
 
-    enviarTrama();
+    res = write(fd, SET, s_length);
+    printf("Sent packet \n", res);
+    sleep(2);
 
     while (STOP==FALSE) {       /* loop for input */
       res = read(fd,buf,1);    /* returns after 5 chars have been input */
