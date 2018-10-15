@@ -7,6 +7,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <signal.h>
+#include <unistd.h>
  
 #define BAUDRATE B38400
 #define MODEMDEVICE "/dev/ttyS1"
@@ -20,14 +22,38 @@
 #define UA 0x07
  
 volatile int STOP=FALSE;
+volatile int retransmit = FALSE;
+
+struct applicationLayer {
+	int fileDescriptor;
+};
+
+struct linkLayer {
+	char port[20];
+	int baudRate;
+	unsigned int sequenceNumber;
+	unsigned int timeout;
+	unsigned int numTransmissions;
+	char frame[255];
+};
+
+void retransmission(int signum){
+	retransmit = TRUE;
+	printf("alarm\n");
+}
  
 int main(int argc, char** argv)
 {
     int fd,c, res;
     struct termios oldtio,newtio;
-    char buf[255], bufread[255];
+    unsigned char buf[255], bufread[255];
     int i, sum = 0, speed = 0;
- 
+	struct linkLayer ll;
+
+	ll.timeout = 3;
+	ll.numTransmissions = 3;
+	signal(SIGALRM, retransmission);  
+
     if ( (argc < 2) ||
          ((strcmp("/dev/ttyS0", argv[1])!=0) &&
           (strcmp("/dev/ttyS1", argv[1])!=0) )) {
@@ -58,8 +84,8 @@ int main(int argc, char** argv)
     /* set input mode (non-canonical, no echo,...) */
     newtio.c_lflag = 0;
  
-    newtio.c_cc[VTIME]    = 0;   /* inter-character timer unused */
-    newtio.c_cc[VMIN]     = 1;   /* blocking read until 1 char received */
+    newtio.c_cc[VTIME]    = 10;   /* inter-character timer unused */
+    newtio.c_cc[VMIN]     = 0;   /* blocking read until 1 char received */
  
   /*
     VTIME e VMIN devem ser alterados de forma a proteger com um temporizador a
@@ -75,7 +101,8 @@ int main(int argc, char** argv)
  
     printf("New termios structure set\n Establishing conection\n");
  
-    //trama
+    //trama	
+
     int s_length = 5;
     unsigned char SET[s_length];
     SET[0] = FLAG;
@@ -86,47 +113,77 @@ int main(int argc, char** argv)
  
     enum states {INIT, F, FA, FAC, FACBCC, FACBCCF} state;
     state = INIT;
-    char buffer;
+	char byte;
  
     //mandar trama de supervisão
     res = write(fd, SET, s_length);
-    printf("Packet sent", res);
-    sleep(2);
- 
-    int unreceived = 1;
+    printf("Packet sent (bytes: %d)\n", res);
+
+	sleep(1);
+
+	alarm(3);
+
+    int unreceived = TRUE;
     while(unreceived) {
-      res = read(fd, buffer, 1);
+
+	  if(retransmit) {
+		printf("Retransmit\n");
+		if(ll.numTransmissions == 0) {
+			printf("No more retransmissions, leaving.\n");
+			exit(1);
+		}
+	  	res = write(fd, SET, s_length);
+    	printf("Packet sent again (bytes: %d)\n", res);
+		state = INIT;
+		ll.numTransmissions--;
+		alarm(3);
+		retransmit = FALSE;
+	  }
+
+      res = read(fd, &byte, 1);
+
+	  if(res<0){
+		perror("read error");
+	  }
+	  else if (res==1){  
+     	 bufread[res]=0;           
+      	 printf(":%x:%d\n", byte, res);
+	  }
+	
       switch(state) {
         case INIT:
-          if (buffer==FLAG){
+          if (byte==FLAG){
             state = F;
+			printf("init\n");
           }
           break;
         case F:
-          if(buffer==RECEPTORSA)
+          if(byte==RECEPTORSA)
             state = FA;
-          else if(buffer==FLAG)
+          else if(byte==FLAG)
             state = F;
           else state = INIT;
           break;
         case FA:
-          if(buffer==UA)
+          if(byte==UA)
             state=FAC;
-          else if(buffer==FLAG)
+          else if(byte==FLAG)
             state=F;
           else state = INIT;
           break;
         case FAC:
-          if(buffer == (RECEPTORSA^UA))
+          if(byte== (RECEPTORSA^UA))
             state=FACBCC;
-          else if(buffer==FLAG)
+          else if(byte==FLAG)
             state=F;
           else state = INIT;
           break;
         case FACBCC:
-          if(buffer==FLAG) {
+          if(byte==FLAG) {
             state=FACBCCF;
-            unreceived = 0;
+            unreceived = FALSE;
+			alarm(0);
+			ll.numTransmissions = 3;
           }
           else state=INIT;
           break;
@@ -136,19 +193,21 @@ int main(int argc, char** argv)
  
     printf("Connection established, write something \n");
  
-    gets(buf);
+
+/*    fgets(buf);
  
     res = write(fd,buf,strlen(buf) + 1);
     printf("%d bytes written\n", res);
  
     sleep(2);
  
-    while (STOP==FALSE) {       /* loop for input */
-      res = read(fd,bufread,1);   /* returns after 1 char have been input */
-      bufread[res]=0;               /* so we can printf... */
+    while (STOP==FALSE) {     
+      res = read(fd,bufread,1);   
+      bufread[res]=0;           
       printf(":%s:%d\n", bufread, res);
       if (bufread[res-1]=='\0') STOP=TRUE;
-    }
+    } 
+*/
  
     if ( tcsetattr(fd,TCSANOW,&oldtio) == -1) {
       perror("tcsetattr");
