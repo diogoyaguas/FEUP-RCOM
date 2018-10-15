@@ -5,6 +5,9 @@
 #include <fcntl.h>
 #include <termios.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <strings.h>
+#include <string.h>
 
 #define BAUDRATE B38400
 #define MODEMDEVICE "/dev/ttyS1"
@@ -59,8 +62,8 @@ int main(int argc, char** argv)
     /* set input mode (non-canonical, no echo,...) */
     newtio.c_lflag = 0;
 
-    newtio.c_cc[VTIME]    = 0;   /* inter-character timer unused */
-    newtio.c_cc[VMIN]     = 1;   /* blocking read until 1 char received */
+    newtio.c_cc[VTIME]    = 10;   /* inter-character timer unused */
+    newtio.c_cc[VMIN]     = 0;   /* blocking read until 1 char received */
 
   /* 
     VTIME e VMIN devem ser alterados de forma a proteger com um temporizador a 
@@ -79,11 +82,12 @@ int main(int argc, char** argv)
     //Receção de trama
     enum states {INIT, F, FA, FAC, FACBCC, FACBCCF} state;
     state = INIT;
-    char buffer;
+    unsigned char buffer;
 
     int unreceived = 1;
     while(unreceived) {
-      res = read(fd, buffer, 1);
+      res = read(fd, &buffer, 1);
+	printf("read %x %d\n", buffer, res);
       switch(state) {
         case INIT:
           if (buffer==FLAG)
