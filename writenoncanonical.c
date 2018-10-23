@@ -9,35 +9,18 @@
 #include <string.h>
 #include <signal.h>
 #include <unistd.h>
-#include "applicationlayer.c"
-#include "linklayer.c"
+#include "applicationLayer.c"
+#include "linkLayer.c"
 
 #define BAUDRATE B38400
 #define MODEMDEVICE "/dev/ttyS1"
 #define _POSIX_SOURCE 1 /* POSIX compliant source */
-#define FALSE 0
-#define TRUE 1
-#define SETUP 0x03
-#define RECEPTORSA 0x01
-#define UA 0x07
 
 volatile int STOP=FALSE;
 volatile int retransmit = FALSE;
 
-void retransmission(int signum){
-	retransmit = TRUE;
-	printf("alarm\n");
-}
-
 int main(int argc, char** argv) {
-    int fd,c, res;
     struct termios oldtio,newtio;
-    unsigned char buf[255], bufread[255];
-    int i, sum = 0, speed = 0;
-
-	ll.timeout = 3;
-	ll.numTransmissions = 3;
-	signal(SIGALRM, retransmission);
 
     if ( (argc < 2) ||
          ((strcmp("/dev/ttyS0", argv[1])!=0) &&
@@ -52,11 +35,13 @@ int main(int argc, char** argv) {
     because we don't want to get killed if linenoise sends CTRL-C.
   */
 
- 	llopen(argv[1], TRANSMITTER);
-    fd = open(argv[1], O_RDWR | O_NOCTTY );
-    if (fd <0) {perror(argv[1]); exit(-1); }
+ 	  al.fileDescriptor = llopen(argv[1]);
+    if (al.fileDescriptor <0) {
+      perror(argv[1]);
+      exit(-1);
+    }
 
-    if ( tcgetattr(fd,&oldtio) == -1) { /* save current port settings */
+    if ( tcgetattr(al.fileDescriptor,&oldtio) == -1) { /* save current port settings */
       perror("tcgetattr");
       exit(-1);
     }
@@ -77,9 +62,9 @@ int main(int argc, char** argv) {
     leitura do(s) pr�ximo(s) caracter(es)
   */
 
-    tcflush(fd, TCIOFLUSH);
+    tcflush(al.fileDescriptor, TCIOFLUSH);
 
-    if ( tcsetattr(fd,TCSANOW,&newtio) == -1) {
+    if ( tcsetattr(al.fileDescriptor,TCSANOW,&newtio) == -1) {
       perror("tcsetattr");
       exit(-1);
     }
@@ -89,96 +74,11 @@ int main(int argc, char** argv) {
 	//------------------------------------------------
 
     //trama	de supervisão SET
-
-    int s_length = 5;
-    unsigned char SET[s_length];
-    SET[0] = FLAG;
-    SET[4] = FLAG;
-    SET[1] = A;
-    SET[2] = SETUP;
-    SET[3] = SET[1] ^ SET[2];
-
-    enum setStates {INIT, F, FA, FAC, FACBCC, FACBCCF} setState;
-    setState = INIT;
-	char byte;
-
-    //mandar trama de supervisão
-    res = write(fd, SET, s_length);
-    printf("SET sent (bytes: %d)\n", res);
-
-	sleep(1);
-
-	alarm(3);
-
-    int unreceived = TRUE;
-    while(unreceived) {
-
-	  if(retransmit) {
-		printf("Retransmit\n");
-		if(ll.numTransmissions == 0) {
-			printf("No more retransmissions, leaving.\n");
-			exit(1);
-		}
-	  	res = write(fd, SET, s_length);
-    	printf("SET sent again (bytes: %d)\n", res);
-		setState = INIT;
-		ll.numTransmissions--;
-		alarm(3);
-		retransmit = FALSE;
-	  }
-
-      res = read(fd, &byte, 1);
-
-	  if(res<0){
-		perror("read error");
-	  }
-	  else if (res==1){
-     	 bufread[res]=0;
-      	 printf(":%x:%d\n", byte, res);
-	  }
-
-      switch(setState) {
-        case INIT:
-          if (byte==FLAG){
-            setState = F;
-			printf("init\n");
-          }
-          break;
-        case F:
-          if(byte==RECEPTORSA)
-            setState = FA;
-          else if(byte==FLAG)
-            setState = F;
-          else setState = INIT;
-          break;
-        case FA:
-          if(byte==UA)
-            setState=FAC;
-          else if(byte==FLAG)
-            setState=F;
-          else setState = INIT;
-          break;
-        case FAC:
-          if(byte== (RECEPTORSA^UA))
-            setState=FACBCC;
-          else if(byte==FLAG)
-            setState=F;
-          else setState = INIT;
-          break;
-        case FACBCC:
-          if(byte==FLAG) {
-            setState=FACBCCF;
-            unreceived = FALSE;
-			alarm(0);
-			ll.numTransmissions = 3;
-          }
-          else setState=INIT;
-          break;
-        default: break;
-      }
+    if (sendSet(al.fileDescriptor) < 0) {
+      printf("Error while sending SET \n");
+      exit(-1);
     }
 
-    printf("UA received, continuing \n");
 
 
 
@@ -198,11 +98,11 @@ int main(int argc, char** argv) {
     }
 */
 
-    if ( tcsetattr(fd,TCSANOW,&oldtio) == -1) {
+    if ( tcsetattr(al.fileDescriptor,TCSANOW,&oldtio) == -1) {
       perror("tcsetattr");
       exit(-1);
     }
 
-    close(fd);
+    close(al.fileDescriptor);
     return 0;
 }
