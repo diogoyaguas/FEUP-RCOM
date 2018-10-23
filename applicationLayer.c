@@ -1,30 +1,7 @@
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <termios.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <signal.h>
-#include <unistd.h>
+#include "applicationLayer.h"
 
-#define TRANSMITTER 1
-#define RECEIVER 0
-#define CONTROL 0x00
-#define FLAG 0x7E
-#define A 0x03
-
-struct applicationLayer {
-	int fileDescriptor;
-	int flag;
-  int status;
-} al;
-
-int llopen(char * porta) {
-	return open(porta, O_RDWR | O_NOCTTY );
-}
-
-int llwrite(int fd, unsigned char * buffer, int length) {
+int llwrite(unsigned char * buffer, int length) {
+	/*
 	unsigned int packet_length = length+6;
 	unsigned char packet[packet_length];
 	unsigned char BCC, previous;
@@ -47,5 +24,7 @@ int llwrite(int fd, unsigned char * buffer, int length) {
 	packet[packet_length-2] = FLAG;
 	packet[packet_length-3] = BCC;
 
-	return write(fd, packet, packet_length);
+	return write(al.fileDescriptor, packet, packet_length);
+	*/
+	return 0;
 }

@@ -1,61 +1,63 @@
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <termios.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <signal.h>
-#include <unistd.h>
+#include "linkLayer.h"
 
-#define FLAG 0x7E
-#define SETUP 0x03
-#define RECEPTORSA 0x01
-#define UA 0x07
-
-#define FALSE 0
-#define TRUE 1
-
-struct linkLayer {
-	char port[20];
-	int baudRate;
-	unsigned int sequenceNumber;
-	unsigned int timeout;
-	unsigned int numRetransmissions;
-	char SET[5];
-  unsigned int frameLength;
-  volatile int retransmit;
-  int status;
-};
-
+/*
 struct linkLayer ll = (struct linkLayer) {.timeout = 3, .numRetransmissions = 3, .retransmit = FALSE, .frameLength = 5};
+*/
 
 void retransmission(int signum){
 	ll.retransmit = TRUE;
 	printf("alarm\n");
 }
 
-int sendSet(int fd) {
+int llopen(char * serialport, int status) {
+	int fd;
+	fd = open(serialport, O_RDWR | O_NOCTTY );
+
+	if (fd < 0) {
+		perror("Error opening serial port");
+		exit(-1);
+	}
+
+	return fd;
+}
+
+int establishConnection(int fd, int status) {
+
+	if(status==TRANSMITTER) {
+		sendSet(fd);
+		receiveUA(fd);
+	}
+	else if(status==RECEIVER) {
+	}
+
+	return 0;
+}
+
+void sendSet(int fd) {
   int res;
   ll.SET[0] = FLAG;
   ll.SET[4] = FLAG;
-  ll.SET[1] = A;
+  ll.SET[1] = TRANSMITTERSA;
   ll.SET[2] = SETUP;
   ll.SET[3] = ll.SET[1] ^ ll.SET[2];
 
   //mandar trama de supervisão
-  res = write(fd, ll.SET, ll.frameLength);
+  res = write(fd, ll.SET, ll.frameSLength);
+
+	if(res<0) {
+		perror("Writing SET frame error");
+		exit(-1);
+	}
+
   printf("SET sent (bytes: %d)\n", res);
 
   sleep(1);
 
   signal(SIGALRM, retransmission);
   alarm(ll.timeout);
-
-  return res;
 }
 
-int receiveUA(int fd) {
+void receiveUA(int fd) {
   enum receiveState {INIT, F, FA, FAC, FACBCC, FACBCCF} receiveState;
   receiveState = INIT;
   int res;
@@ -66,9 +68,9 @@ int receiveUA(int fd) {
     if(ll.retransmit) {
       if(ll.numRetransmissions == 0) {
         printf("No more retransmissions, leaving.\n");
-        return -1;
+        exit(-1);
       }
-      res = write(fd, ll.SET, ll.frameLength);
+      res = write(fd, ll.SET, ll.frameSLength);
       printf("SET sent again (bytes: %d)\n", res);
       receiveState = INIT;
       ll.numRetransmissions--;
@@ -88,7 +90,7 @@ int receiveUA(int fd) {
           receiveState = F;
         break;
       case F:
-        if(byte==RECEPTORSA)
+        if(byte==RECEIVERSA)
           receiveState = FA;
         else if(byte==FLAG)
           receiveState = F;
@@ -102,7 +104,7 @@ int receiveUA(int fd) {
         else receiveState = INIT;
         break;
       case FAC:
-        if(byte== (RECEPTORSA^UA))
+        if(byte== (RECEIVERSA^UA))
           receiveState=FACBCC;
         else if(byte==FLAG)
           receiveState=F;
@@ -122,6 +124,8 @@ int receiveUA(int fd) {
       default: break;
     }
   }
+}
 
-  return 0;
+void sendI(int fd) {
+
 }
