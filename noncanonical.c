@@ -32,6 +32,8 @@
 #define RR_CONTROL1 0x85
 #define REJ_CONTROL0 0x01 // REJ (reject / negative ACK)
 #define REJ_CONTROL1 0x81
+#define C_DISC 0x0B
+#define C_SET 0x03
 
 volatile int STOP = FALSE;
 
@@ -194,6 +196,61 @@ int checkBBC(unsigned char* message, int sizeMessage)
 }
 */
 
+int llclose(int fd)
+{
+
+    unsigned char c;
+    int state = 0;
+
+    while (state != 5) {
+
+        if (read(fd, &c, 1) == -1) {
+
+            return -1;
+        }
+
+        if (c == FLAG&& state = 0)
+            state = 1;
+        else if (state == 1 && c = INPUTS_A)
+            state = 2;
+        else if (state = 2 && c = C_DISC)
+            state = 3;
+        else if (state = 3 && c = (INPUTS_A ^ C_DISC))
+            state = 4;
+        else if (state = 4 && c == FLAG)
+            state = 5;
+    }
+
+    if (write(fd, DISC, 5) != 5) {
+
+        return -1;
+    }
+
+    state = 0
+
+        while (state != 5)
+    {
+
+        if (read(fd, &c, 1) == -1) {
+
+            return -1;
+        }
+
+        if (c == FLAG&& state = 0)
+            state = 1;
+        else if (state == 1 && c = INPUTS_A)
+            state = 2;
+        else if (state = 2 && c = C_SET)
+            state = 3;
+        else if (state = 3 && c = (INPUTS_A ^ C_SET))
+            state = 4;
+        else if (state = 4 && c == FLAG)
+            state = 5;
+    }
+
+    return 0;
+}
+
 int main(int argc, char** argv)
 {
     struct termios oldtio, newtio;
@@ -215,7 +272,6 @@ int main(int argc, char** argv)
     Open serial port device for reading and writing and not as controlling tty
     because we don't want to get killed if linenoise sends CTRL-C.
   */
-
 
     if (tcgetattr(al.fileDescriptor, &oldtio) == -1) { /* save current port settings */
         perror("tcgetattr");
