@@ -9,10 +9,11 @@
 #include <unistd.h>
 #include "utils.h"
 
+#define FLAG 0x7E
 #define TRANSMITTERSA 0x03
 #define RECEIVERSA 0x01
-#define UA 0x07
 #define SETUP 0x03
+#define UA 0x07
 
 struct linkLayer {
 	char port[20];
@@ -21,8 +22,9 @@ struct linkLayer {
 	unsigned int timeout;
 	unsigned int numRetransmissions;
 	char SET[5];
-  unsigned int frameSLength;
-  unsigned int frameILength;
+	char UAck[5];
+  size_t frameSLength;
+  size_t frameILength;
   volatile int retransmit;
 };
 

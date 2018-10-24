@@ -8,10 +8,14 @@
 #include <stdlib.h>
 #include <strings.h>
 #include <string.h>
+#include "applicationLayer.h"
+#include "linkLayer.h"
 
 #define BAUDRATE B38400
 #define MODEMDEVICE "/dev/ttyS1"
 #define _POSIX_SOURCE 1 /* POSIX compliant source */
+
+/*
 #define FALSE 0
 #define TRUE 1
 #define FLAG 0x7E
@@ -24,10 +28,12 @@
 #define PATTERNESCAPE 0x5D
 #define CONTROL0 0x00
 #define CONTROL1 0X40
-#define RR_CONTROL0 0x05 /* RR (receiver ready / positive ACK) */
+#define RR_CONTROL0 0x05 // RR (receiver ready / positive ACK)
 #define RR_CONTROL1 0x85
-#define REJ_CONTROL0 0x01 /*REJ (reject / negative ACK) */
+#define REJ_CONTROL0 0x01 // REJ (reject / negative ACK)
 #define REJ_CONTROL1 0x81
+#define C_DISC 0x0B
+#define C_SET 0x03
 
 volatile int STOP = FALSE;
 
@@ -188,16 +194,74 @@ int checkBBC(unsigned char* message, int sizeMessage)
     else
         return FALSE;
 }
+*/
+
+int llclose(int fd)
+{
+
+    unsigned char c;
+    int state = 0;
+
+    while (state != 5) {
+
+        if (read(fd, &c, 1) == -1) {
+
+            return -1;
+        }
+
+        if (c == FLAG&& state = 0)
+            state = 1;
+        else if (state == 1 && c = INPUTS_A)
+            state = 2;
+        else if (state = 2 && c = C_DISC)
+            state = 3;
+        else if (state = 3 && c = (INPUTS_A ^ C_DISC))
+            state = 4;
+        else if (state = 4 && c == FLAG)
+            state = 5;
+    }
+
+    if (write(fd, DISC, 5) != 5) {
+
+        return -1;
+    }
+
+    state = 0
+
+        while (state != 5)
+    {
+
+        if (read(fd, &c, 1) == -1) {
+
+            return -1;
+        }
+
+        if (c == FLAG&& state = 0)
+            state = 1;
+        else if (state == 1 && c = INPUTS_A)
+            state = 2;
+        else if (state = 2 && c = C_SET)
+            state = 3;
+        else if (state = 3 && c = (INPUTS_A ^ C_SET))
+            state = 4;
+        else if (state = 4 && c == FLAG)
+            state = 5;
+    }
+
+    return 0;
+}
 
 int main(int argc, char** argv)
 {
-    int fd, c, res;
     struct termios oldtio, newtio;
-    char buf[255], bufread[255];
-    int i, sum = 0, speed = 0;
-    char echo[255];
 
-    strcpy(echo, "");
+    al.status = RECEIVER;
+    al.fileDescriptor = llopen(argv[1], al.status);
+
+    ll.timeout = 3;
+    ll.numRetransmissions = 3;
+    ll.frameSLength = 5;
+    ll.retransmit = FALSE;
 
     if ((argc < 2) || ((strcmp("/dev/ttyS0", argv[1]) != 0) && (strcmp("/dev/ttyS1", argv[1]) != 0))) {
         printf("Usage:\tnserial SerialPort\n\tex: nserial /dev/ttyS1\n");
@@ -209,13 +273,7 @@ int main(int argc, char** argv)
     because we don't want to get killed if linenoise sends CTRL-C.
   */
 
-    fd = open(argv[1], O_RDWR | O_NOCTTY);
-    if (fd < 0) {
-        perror(argv[1]);
-        exit(-1);
-    }
-
-    if (tcgetattr(fd, &oldtio) == -1) { /* save current port settings */
+    if (tcgetattr(al.fileDescriptor, &oldtio) == -1) { /* save current port settings */
         perror("tcgetattr");
         exit(-1);
     }
@@ -236,45 +294,20 @@ int main(int argc, char** argv)
     leitura do(s) pr�ximo(s) caracter(es)
   */
 
-    tcflush(fd, TCIOFLUSH);
+    tcflush(al.fileDescriptor, TCIOFLUSH);
 
-    if (tcsetattr(fd, TCSANOW, &newtio) == -1) {
+    if (tcsetattr(al.fileDescriptor, TCSANOW, &newtio) == -1) {
         perror("tcsetattr");
         exit(-1);
     }
 
     printf("New termios structure set\n");
 
-    // trama após receção
-    int s_length = 5;
-    unsigned char SET[s_length];
-    SET[0] = FLAG;
-    SET[4] = FLAG;
-    SET[1] = A;
-    SET[2] = UA;
-    SET[3] = SET[1] ^ SET[2];
+    //estabelecer conexao
 
-    res = write(fd, SET, s_length);
-    printf("Sent packet \n", res);
-    sleep(2);
+    establishConnection(al.fileDescriptor, al.status);
 
-    while (STOP == FALSE) { /* loop for input */
-        res = read(fd, buf, 1); /* returns after 5 chars have been input */
-        buf[res] = 0; /* so we can printf... */
-        if (buf[res - 1] == '\0')
-            STOP = TRUE;
-        strcat(echo, buf);
-    }
-
-    res = write(fd, echo, strlen(echo) + 1);
-    printf("%d bytes echoed\n", res);
-    sleep(2);
-
-    /*
-    O ciclo WHILE deve ser alterado de modo a respeitar o indicado no gui�o
-  */
-
-    tcsetattr(fd, TCSANOW, &oldtio);
-    close(fd);
+    tcsetattr(al.fileDescriptor, TCSANOW, &oldtio);
+    close(al.fileDescriptor);
     return 0;
 }

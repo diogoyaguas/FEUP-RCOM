@@ -1,12 +1,7 @@
 #include "linkLayer.h"
 
-/*
-struct linkLayer ll = (struct linkLayer) {.timeout = 3, .numRetransmissions = 3, .retransmit = FALSE, .frameLength = 5};
-*/
-
 void retransmission(int signum){
 	ll.retransmit = TRUE;
-	printf("alarm\n");
 }
 
 int llopen(char * serialport, int status) {
@@ -28,6 +23,8 @@ int establishConnection(int fd, int status) {
 		receiveUA(fd);
 	}
 	else if(status==RECEIVER) {
+		receiveSet(fd);
+		sendUA(fd);
 	}
 
 	return 0;
@@ -81,7 +78,7 @@ void receiveUA(int fd) {
     res = read(fd, &byte, 1);
 
     if(res<0){
-    perror("Receiving UA reading error");
+    	perror("Receiving UA reading error");
     }
 
     switch(receiveState) {
@@ -110,6 +107,7 @@ void receiveUA(int fd) {
           receiveState=F;
         else {
           receiveState = INIT;
+					printf("BCC error while reading UA\n");
         }
         break;
       case FACBCC:
@@ -118,6 +116,7 @@ void receiveUA(int fd) {
           unreceived = FALSE;
           alarm(0);
           ll.numRetransmissions = 3;
+					printf("Received UA\n");
         }
         else receiveState=INIT;
         break;
@@ -126,6 +125,76 @@ void receiveUA(int fd) {
   }
 }
 
-void sendI(int fd) {
+void sendUA(int fd) {
+	int res;
 
+	//mandar trama de supervisão
+	ll.UAck[0] = FLAG;
+	ll.UAck[4] = FLAG;
+	ll.UAck[1] = RECEIVERSA;
+	ll.UAck[2] = UA;
+	ll.UAck[3] = ll.UAck[1] ^ ll.UAck[2];
+
+	res = write(fd, ll.UAck, ll.frameSLength);
+	printf("UA sent (bytes: %d)\n", res);
+	sleep(1);
+
+	signal(SIGALRM, retransmission);
+	alarm(ll.timeout);
+}
+
+void receiveSet(int fd) {
+	enum receiveState {INIT, F, FA, FAC, FACBCC, FACBCCF} receiveState;
+  receiveState = INIT;
+  int res;
+  unsigned char byte;
+  int unreceived = TRUE;
+
+  while(unreceived) {
+    res = read(fd, &byte, 1);
+
+    if(res<0){
+    	perror("Receiving SET reading error");
+    }
+
+    switch(receiveState) {
+      case INIT:
+        if (byte==FLAG)
+          receiveState = F;
+        break;
+      case F:
+        if(byte==TRANSMITTERSA)
+          receiveState = FA;
+        else if(byte==FLAG)
+          receiveState = F;
+        else receiveState = INIT;
+        break;
+      case FA:
+        if(byte==SETUP)
+          receiveState=FAC;
+        else if(byte==FLAG)
+          receiveState=F;
+        else receiveState = INIT;
+        break;
+      case FAC:
+        if(byte == (TRANSMITTERSA^SETUP))
+          receiveState=FACBCC;
+        else if(byte==FLAG)
+          receiveState=F;
+        else {
+					printf("BCC error while reading SET\n");
+          receiveState = INIT;
+        }
+        break;
+      case FACBCC:
+        if(byte==FLAG) {
+          receiveState=FACBCCF;
+          unreceived = FALSE;
+					printf("Received SET\n");
+        }
+        else receiveState=INIT;
+        break;
+      default: break;
+    }
+  }
 }

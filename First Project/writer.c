@@ -29,7 +29,7 @@ int main(int argc, char** argv) {
 
 		ll.timeout = 3;
 		ll.numRetransmissions = 3;
-		ll.frameILength = 5;
+		ll.frameSLength = 5;
 		ll.retransmit = FALSE;
 
     if ( tcgetattr(al.fileDescriptor,&oldtio) == -1) { /* save current port settings */
@@ -68,7 +68,7 @@ int main(int argc, char** argv) {
 
 		establishConnection(al.fileDescriptor, al.status);
 
-
+    tcsetattr(al.fileDescriptor, TCSANOW, &oldtio);
     close(al.fileDescriptor);
     return 0;
 }
