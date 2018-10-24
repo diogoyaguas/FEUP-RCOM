@@ -31,64 +31,76 @@
 
 volatile int STOP = FALSE;
 
+
+void sendControlMessage(int fd, unsigned char C) {
+  unsigned char message[5];
+  message[0] = FLAG;
+  message[1] = A;
+  message[2] = C;
+  message[3] = message[1] ^ message[2];
+  message[4] = FLAG;
+  write(fd, message, 5);
+}
+
 int llread(int fd, char *buffer) {
   // Reception of the packet
   enum states { INIT, F, FA, FAC, FACBCC, FACBCCF } state;
   state = INIT;
 
-  unsigned char message;
+  unsigned char *message;
+unsigned char messageRead;
   int unreceived = 1;
   int packetType;
   int send = 0;
 
   unsigned char *charsRead = (unsigned char *)malloc(0);
-  *lengthOfCharsRead = 0;
+  unsigned int *lengthOfCharsRead = 0;
 
   while (unreceived) {
-    res = read(fd, &message, 1);
+    int res = read(fd, &message, 1);
 
     printf("read %x %d\n", message, res);
 
     switch (state) {
       case INIT:
-        if (message == FLAG) state = F;
+        if (*message == FLAG) state = F;
         break;
 
       case F:
-        if (message == INPUTS_A)
+        if (*message == INPUTS_A)
           state = FA;
-        else if (message == FLAG)
+        else if (*message == FLAG)
           state = F;
         else
           state = INIT;
         break;
 
       case FA:
-        if (message == CONTROL1) {
+        if (*message == CONTROL0) {
           packetType = 0;
-          messageRead = message;
+          messageRead = *message;
           state = FAC;
 
-        } else if (message == CONTROL2) {
+        } else if (*message == CONTROL1) {
           packetType = 1;
-          messageRead = message;
+          messageRead = *message;
           state = FAC;
 
-        } else if (message == FLAG)
+        } else if (*message == FLAG)
           state = F;
         else
           state = INIT;
         break;
 
       case FAC:
-        if (message == (INPUTS_A ^ messageRead))
+        if (*message == (INPUTS_A ^ messageRead))
           state = FACBCC;
         else
           state = INIT;
         break;
 
       case FACBCC:
-        if (message == FLAG) {
+        if (*message == FLAG) {
           if (checkBCC(charsRead, *lengthOfCharsRead)) {
 
             if (packetType)
@@ -112,21 +124,21 @@ int llread(int fd, char *buffer) {
             printf("Send 'Reject' , P: %d\n", packetType);
 
           }
-        } else if (message == ESCAPE) {
+        } else if (*message == ESCAPE) {
           state = FACBCCF;
         } else {
           charsRead = (unsigned char *)realloc(message, ++(*lengthOfCharsRead));
-          charsRead[*lengthOfCharsRead - 1] = message;
+          charsRead[*lengthOfCharsRead - 1] = *message;
         }
         break;
 
       case FACBCCF:
 
-        if (message == PATTERNFLAG) {
+        if (*message == PATTERNFLAG) {
           charsRead = (unsigned char *)realloc(charsRead, ++(*lengthOfCharsRead));
           charsRead[*lengthOfCharsRead - 1] = FLAG;
         } else {
-          if (message == PATTERNESCAPE) {
+          if (*message == PATTERNESCAPE) {
             charsRead = (unsigned char *)realloc(charsRead, ++(*lengthOfCharsRead));
             charsRead[*lengthOfCharsRead - 1] = ESCAPE;
           } else {
@@ -143,19 +155,12 @@ int llread(int fd, char *buffer) {
 
   charsRead = (unsigned char *)realloc(charsRead, *lengthOfCharsRead - 1);
 
-  *lengthOfCharsRead = *lengthOfCharsRead - 1;
-  if (send) {
-    if (packetType == esperado) {
-      esperado ^= 1;
-    } else
-      *lengthOfCharsRead = 0;
-  } else
-    *lengthOfCharsRead = 0;
-  return charsRead;
+  *lengthOfCharsRead--;
+ 
+  return *lengthOfCharsRead;
 }
 
-int checkBBC(unsigned char *message, int sizeMessage)
-{
+int checkBBC(unsigned char *message, int sizeMessage) {
   int i = 1;
   unsigned char BCC2 = message[0];
   for (; i < sizeMessage - 1; i++)
@@ -170,18 +175,6 @@ int checkBBC(unsigned char *message, int sizeMessage)
     return FALSE;
 }
 
-void sendControlMessage(int fd, unsigned char C)
-{
-  unsigned char message[5];
-  message[0] = FLAG;
-  message[1] = A;
-  message[2] = C;
-  message[3] = message[1] ^ message[2];
-  message[4] = FLAG;
-  write(fd, message, 5);
-}
-
-void readControlMessage(int fd, 
 
 int main(int argc, char **argv) {
   int fd, c, res;
