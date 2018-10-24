@@ -2,7 +2,6 @@
 
 void retransmission(int signum){
 	ll.retransmit = TRUE;
-	printf("alarm\n");
 }
 
 int llopen(char * serialport, int status) {
@@ -108,6 +107,7 @@ void receiveUA(int fd) {
           receiveState=F;
         else {
           receiveState = INIT;
+					printf("BCC error while reading UA\n");
         }
         break;
       case FACBCC:
@@ -116,6 +116,7 @@ void receiveUA(int fd) {
           unreceived = FALSE;
           alarm(0);
           ll.numRetransmissions = 3;
+					printf("Received UA\n");
         }
         else receiveState=INIT;
         break;
@@ -176,11 +177,12 @@ void receiveSet(int fd) {
         else receiveState = INIT;
         break;
       case FAC:
-        if(byte== (TRANSMITTERSA^SETUP))
+        if(byte == (TRANSMITTERSA^SETUP))
           receiveState=FACBCC;
         else if(byte==FLAG)
           receiveState=F;
         else {
+					printf("BCC error while reading SET\n");
           receiveState = INIT;
         }
         break;
@@ -188,6 +190,7 @@ void receiveSet(int fd) {
         if(byte==FLAG) {
           receiveState=FACBCCF;
           unreceived = FALSE;
+					printf("Received SET\n");
         }
         else receiveState=INIT;
         break;

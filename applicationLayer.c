@@ -27,3 +27,7 @@ int llwrite(unsigned char * buffer, int length) {
 	return write(al.fileDescriptor, packet, packet_length);;
 }
 */
+
+void sendControlPacket() {
+
+}

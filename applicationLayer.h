@@ -9,11 +9,18 @@
 #include <unistd.h>
 #include "utils.h"
 
-#define CONTROL 0x00
+#define CONTROLSTART 0x02 // control byte in control packet with value start
+#define CONTROLEND 0x03 // control byte in control packet with value end
+#define CONTROLT1 0x00 // file's size
+#define CONTROLT2 0x01 // file's name
 
 struct applicationLayer {
 	int fileDescriptor;
   int status;
+	
+	char controlPacket[];
 };
 
 struct applicationLayer al;
+
+void sendControlPacket();

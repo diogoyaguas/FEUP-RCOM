@@ -23,8 +23,8 @@ struct linkLayer {
 	unsigned int numRetransmissions;
 	char SET[5];
 	char UAck[5];
-  unsigned int frameSLength;
-  unsigned int frameILength;
+  size_t frameSLength;
+  size_t frameILength;
   volatile int retransmit;
 };
 
