@@ -1,12 +1,66 @@
 #include "linkLayer.h"
 
-void retransmission(int signum)
-{
+void retransmission(int signum) {
     ll.retransmit = TRUE;
 }
 
-int llopen(char* serialport, int status)
-{
+void setSET() {
+  ll.SET[0] = FLAG;
+  ll.SET[1] = TRANSMITTERSA;
+  ll.SET[2] = SETUP;
+  ll.SET[3] = ll.SET[1] ^ ll.SET[2];
+  ll.SET[4] = FLAG;
+}
+
+void setUAck(int status) {
+  ll.UAck[0] = FLAG;
+
+  if(status == TRANSMITTER) {
+    ll.UAck[1] = TRANSMITTERSA;
+  }
+  else if(status==RECEIVER){
+    ll.UAck[1] = RECEIVERSA;
+  }
+
+  ll.UAck[2] = UA;
+  ll.UAck[3] = ll.UAck[1] ^ ll.UAck[2];
+  ll.UAck[4] = FLAG;
+}
+
+void setDisc(int status) {
+  ll.DISC[0] = FLAG;
+
+  if(status == TRANSMITTER) {
+    ll.DISC[1] = TRANSMITTERSA;
+  }
+  else if(status == RECEIVER) {
+    ll.DISC[1] = RECEIVERSA;
+  }
+
+  ll.DISC[2] = C_DISC;
+  ll.DISC[3] = ll.DISC[1] ^ ll.DISC[2];
+  ll.DISC[4] = FLAG;
+
+}
+
+void setRR() {
+  ll.RR[0] = FLAG;
+  ll.RR[1] = RECEIVERSA;
+  ll.RR[3] = ll.RR[1] ^ ll.RR[2];
+  ll.RR[4] = FLAG;
+}
+
+void setRR0(){
+  ll.RR[2] = RR_CONTROL0;
+  setRR();
+}
+
+void setRR1(){
+  ll.RR[2] = RR_CONTROL1;
+  setRR();
+}
+
+int llopen(char* serialport, int status) {
     int fd;
     fd = open(serialport, O_RDWR | O_NOCTTY);
 
@@ -15,51 +69,46 @@ int llopen(char* serialport, int status)
         exit(-1);
     }
 
+    signal(SIGALRM, retransmission);
+
     return fd;
 }
 
-int establishConnection(int fd, int status)
-{
+int establishConnection(int fd, int status) {
+    setSET();
+    setUAck(RECEIVER);
 
     if (status == TRANSMITTER) {
-        sendSet(fd);
-        receiveUA(fd);
+        sendSFrame(fd, ll.SET);
+        receiveUA(fd, ll.SET, ll.frameSLength);
     }
     else if (status == RECEIVER) {
         receiveSet(fd);
-        sendUA(fd);
+        sendSFrame(fd, ll.UAck);
     }
 
     return 0;
 }
 
-void sendSet(int fd)
-{
+void sendSFrame(int fd, unsigned char * frame) {
     int res;
-    ll.SET[0] = FLAG;
-    ll.SET[4] = FLAG;
-    ll.SET[1] = TRANSMITTERSA;
-    ll.SET[2] = SETUP;
-    ll.SET[3] = ll.SET[1] ^ ll.SET[2];
 
     //mandar trama de supervisão
-    res = write(fd, ll.SET, ll.frameSLength);
+    res = write(fd, frame, ll.frameSLength);
 
     if (res < 0) {
         perror("Writing SET frame error");
         exit(-1);
     }
 
-    printf("SET sent (bytes: %d)\n", res);
+    printf("Frame sent (bytes: %d)\n", res);
 
     sleep(1);
 
-    signal(SIGALRM, retransmission);
     alarm(ll.timeout);
 }
 
-void receiveUA(int fd)
-{
+void receiveUA(int fd, unsigned char * retransmit, unsigned int retransmitSize) {
     enum receiveState { INIT,
         F,
         FA,
@@ -77,8 +126,8 @@ void receiveUA(int fd)
                 printf("No more retransmissions, leaving.\n");
                 exit(-1);
             }
-            res = write(fd, ll.SET, ll.frameSLength);
-            printf("SET sent again (bytes: %d)\n", res);
+            res = write(fd, retransmit, retransmitSize);
+            printf("Frame sent again (bytes: %d)\n", res);
             receiveState = INIT;
             ll.numRetransmissions--;
             alarm(3);
@@ -97,7 +146,7 @@ void receiveUA(int fd)
                 receiveState = F;
             break;
         case F:
-            if (byte == RECEIVERSA)
+            if (byte == ll.UAck[1])
                 receiveState = FA;
             else if (byte == FLAG)
                 receiveState = F;
@@ -113,7 +162,7 @@ void receiveUA(int fd)
                 receiveState = INIT;
             break;
         case FAC:
-            if (byte == (RECEIVERSA ^ UA))
+            if (byte == (ll.UAck[1] ^ ll.UAck[2]))
                 receiveState = FACBCC;
             else if (byte == FLAG)
                 receiveState = F;
@@ -139,27 +188,7 @@ void receiveUA(int fd)
     }
 }
 
-void sendUA(int fd)
-{
-    int res;
-
-    //mandar trama de supervisão
-    ll.UAck[0] = FLAG;
-    ll.UAck[4] = FLAG;
-    ll.UAck[1] = RECEIVERSA;
-    ll.UAck[2] = UA;
-    ll.UAck[3] = ll.UAck[1] ^ ll.UAck[2];
-
-    res = write(fd, ll.UAck, ll.frameSLength);
-    printf("UA sent (bytes: %d)\n", res);
-    sleep(1);
-
-    signal(SIGALRM, retransmission);
-    alarm(ll.timeout);
-}
-
-void receiveSet(int fd)
-{
+void receiveSet(int fd) {
     enum receiveState { INIT,
         F,
         FA,
@@ -224,8 +253,7 @@ void receiveSet(int fd)
     }
 }
 
-int llread(int fd, char* buffer)
-{
+int llread(int fd, char* buffer) {
     enum states {
         INIT,
         F,
@@ -258,7 +286,7 @@ int llread(int fd, char* buffer)
             break;
 
         case F:
-            if (*message == INPUTS_A)
+            if (*message == TRANSMITTERSA)
                 state = FA;
             else if (*message == FLAG)
                 state = F;
@@ -284,7 +312,7 @@ int llread(int fd, char* buffer)
             break;
 
         case FAC:
-            if (*message == (INPUTS_A ^ messageRead))
+            if (*message == (TRANSMITTERSA ^ messageRead))
                 state = FACBCC;
             else
                 state = INIT;
@@ -336,8 +364,7 @@ int llread(int fd, char* buffer)
     return *lengthOfCharsRead;
 }
 
-int checkBBC(unsigned char* message, int sizeMessage)
-{
+int checkBCC(unsigned char* message, int sizeMessage) {
     int i = 1;
     unsigned char BCC2 = message[0];
     for (; i < sizeMessage - 1; i++) {
@@ -350,8 +377,7 @@ int checkBBC(unsigned char* message, int sizeMessage)
         return 0;
 }
 
-void sendControlMessage(int fd, unsigned char c)
-{
+void sendControlMessage(int fd, unsigned char c) {
     unsigned char message[5];
     message[0] = FLAG;
     message[1] = RECEIVERSA;
@@ -361,10 +387,7 @@ void sendControlMessage(int fd, unsigned char c)
     write(fd, message, 5);
 }
 
-int byteStuffingMechanism(unsigned char* message, unsigned char* charsRead,
-    int* lengthOfCharsRead)
-{
-
+int byteStuffingMechanism(unsigned char* message, unsigned char* charsRead, int* lengthOfCharsRead){
     if (*message == PATTERNFLAG) {
         charsRead = (unsigned char*)realloc(charsRead, ++(*lengthOfCharsRead));
         charsRead[*lengthOfCharsRead - 1] = FLAG;
@@ -380,11 +403,28 @@ int byteStuffingMechanism(unsigned char* message, unsigned char* charsRead,
     }
 }
 
-int llclose(int fd)
-{
+int llclose(int fd, int status) {
 
-    unsigned char c;
-    int state = 0;
+    if(status == TRANSMITTER) {
+      setDisc(TRANSMITTER);
+      sendSFrame(fd, ll.DISC);
+
+      setDisc(RECEIVER);
+      receiveDisc(fd);
+
+      setUAck(TRANSMITTER);
+      sendSFrame(fd, ll.UAck);
+    }
+    else if(status == RECEIVER) {
+      setDisc(TRANSMITTER);
+      receiveDisc(fd);
+
+      setDisc(RECEIVER);
+      sendSFrame(fd, ll.DISC);
+      receiveUA(fd, ll.DISC, ll.frameSLength);
+    }
+
+    /*
 
     while (state != 5) {
 
@@ -392,6 +432,8 @@ int llclose(int fd)
 
             return -1;
         }
+
+
 
         if (c == FLAG&& state == 0)
             state = 1;
@@ -431,7 +473,7 @@ int llclose(int fd)
         else if (state = 4 && c == FLAG)
             state = 5;
     }
+    */
 
     return 0;
 }
-
