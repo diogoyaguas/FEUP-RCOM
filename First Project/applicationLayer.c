@@ -28,6 +28,22 @@ int llwrite(unsigned char * buffer, int length) {
 }
 */
 
+int initApplicationLayer(char * serialport, int status) {
+
+	al = (applicationLayer*) malloc(sizeof(applicationLayer));
+
+	al->fileDescriptor = llopen(serialport, status);
+
+	if(al->fileDescriptor < 0){
+	    printf("Application Layer - set_connection(): invalid file descriptor\n");
+	    exit(-1);
+	}
+
+
+
+}
+
+
 void sendControlPacket() {
 
 }

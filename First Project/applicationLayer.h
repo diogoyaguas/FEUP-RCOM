@@ -16,11 +16,13 @@
 
 struct applicationLayer {
 	int fileDescriptor;
-  int status;
-	
+  	int status;
+	char* filename;
 	char controlPacket[];
 };
 
 struct applicationLayer al;
+
+int initApplicationLayer();
 
 void sendControlPacket();
