@@ -1,4 +1,5 @@
 #include "applicationLayer.h"
+#include "linkLayer.h"
 
 /*
 int llwrite(unsigned char * buffer, int length) {
@@ -28,22 +29,38 @@ int llwrite(unsigned char * buffer, int length) {
 }
 */
 
-int initApplicationLayer(char * serialport, int status) {
+int initApplicationLayer(char * serialport, int status, char * filename) {
 
 	al = (applicationLayer*) malloc(sizeof(applicationLayer));
 
-	al->fileDescriptor = llopen(serialport, status);
+	al.fileDescriptor = llopen(serialport, status);
 
-	if(al->fileDescriptor < 0){
+	if(al.fileDescriptor < 0){
 	    printf("Application Layer - set_connection(): invalid file descriptor\n");
 	    exit(-1);
 	}
 
+	al.status = status;
 
+	if(file != NULL) {
+		al.fileName = (char *) malloc(sizeof(char) * MAX_FILE_NAME);
+		strncpy(al->fileName, filename, MAX_FILE_NAME);
+	} 
+	else return -1;
 
+}
+
+void destroyApplicationLayer() {
+
+	if (al.fileName != NULL)
+		free(al.fileName);
+	free(al);
+
+	al = NULL;
 }
 
 
 void sendControlPacket() {
 
 }
+	
