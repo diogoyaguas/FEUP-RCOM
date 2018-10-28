@@ -1,64 +1,102 @@
 #include "applicationLayer.h"
+#include "linkLayer.h"
 
-/*
-int llwrite(unsigned char * buffer, int length) {
-	unsigned int packet_length = length+6;
-	unsigned char packet[packet_length];
-	unsigned char BCC, previous;
+void sendControlPacket(int fd, char *filename, unsigned char control_byte) {
+  struct stat f_information;
 
-	packet[0] = FLAG;
-	packet[1] = A;
-	packet[2] = CONTROL;
-	packet[3] = A^CONTROL;
+  if (fstat(fd, &f_information) < 0) {
+    perror("Couldn't obtain information regarding the file.");
+    exit(-1);
+  }
 
-	int i;
-	previous = buffer[0];
-	for(i=4; i<length+4; i++){
-		packet[i] = buffer[i-4];
-		if(i!=4) {
-			BCC = previous^packet[i];
-			previous = packet[i];
-		}
-	}
+  off_t f_size = f_information.st_size; /* total size, in signed bytes */
+  unsigned int v1 = sizeof(f_size);
+  unsigned int v2 = strlen(filename);
 
-	packet[packet_length-2] = FLAG;
-	packet[packet_length-3] = BCC;
+  int startpackage_len = 5 + v1 + v2; /* In order to assure continuity of
+                                         5bytes(C, T1, L1, T2, L2) +
+                                         correspondent V */
 
-	return write(al.fileDescriptor, packet, packet_length);;
-}
-*/
+  unsigned char startpackage[startpackage_len];
+  unsigned int index = 0;
 
-int initApplicationLayer(char * serialport, int status, char * filename) {
+  startpackage[index++] = control_byte;
+  startpackage[index++] = CONTROLT1;
+  startpackage[index++] = v1;
+  *((off_t *)(startpackage + 3)) = f_size; /* POSIX standard in which is assigned an integer in regards to a filesize*/
+  startpackage[index++] = CONTROLT2;
+  startpackage[index++] = v2;
 
-	al = (al*) malloc(sizeof(al));
+  strcat((char *)startpackage + 5 + sizeof(f_information.st_size), filename);
 
-	al.fileDescriptor = llopen(serialport, status);
+  if (control_byte == CONTROLSTART) {
+    printf("\n||File: %s ||\n", filename);
+    printf("||Size: %ld (bytes)||\n\n", f_size);
+  }
 
-	if(al.fileDescriptor < 0){
-	    perror("Application Layer - initApplicationLayer");
-	    exit(-1);
-	}
+  if (!llwrite(fd, startpackage, startpackage_len)) {
+    printf("Couldn't write control package.\n");
+    exit(-1);
+  }
 
-	al.status = status;
-
-	if(file != NULL) {
-		al.fileName = (char *) malloc(sizeof(char) * MAX_FILE_NAME);
-		strncpy(al->fileName, filename, MAX_FILE_NAME);
-	}
-	else return -1;
-
+  return;
 }
 
-void destroyApplicationLayer() {
+int sendPacket(int fd, int seqNumber, char *buffer, int length) {
 
-	if (al.fileName != NULL)
-		free(al.fileName);
-	free(al);
+  int totalLength = length + 4;
+  unsigned char dataPacket[totalLength];
 
-	al = NULL;
+  dataPacket[0] = CONTROLDATA;
+  dataPacket[1] = seqNumber + '0';
+  dataPacket[2] = length / 256;
+  dataPacket[3] = length % 256;
+
+  memcpy(&dataPacket[4], buffer, length);
+
+  if (llwrite(fd, dataPacket, totalLength) < 0) {
+
+    printf("Error sending data packet");
+  }
+
+  return 0;
 }
 
+void receiveControlPacket() {}
 
-void sendControlPacket() {
+int receivePacket(int fd, unsigned char **buffer, int seqNumber) {
 
+  unsigned char *information = NULL;
+  int K = 0; // number of octets
+
+  if (llread(fd, information) < 0) {
+
+    return -1;
+  }
+
+  if (information == NULL)
+    return -1;
+
+  int C = information[0] - '0'; // control field
+  int N = information[1] - '0'; // sequence number
+
+  if (C != CONTROLDATA) {
+
+    return -1;
+  }
+
+  if (N != seqNumber) {
+
+    return -1;
+  }
+
+  int L2 = information[2];
+  int L1 = information[3];
+  K = 256 * L2 + L1;
+
+  memcpy((*buffer), &information[4], K);
+
+  free(information);
+
+  return K;
 }

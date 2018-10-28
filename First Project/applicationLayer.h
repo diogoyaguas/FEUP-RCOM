@@ -8,8 +8,8 @@
 #include <signal.h>
 #include <unistd.h>
 #include "utils.h"
-#include "linkLayer.h"
 
+#define CONTROLDATA  0x01
 #define CONTROLSTART 0x02 // control byte in control packet with value start
 #define CONTROLEND   0x03 // control byte in control packet with value end
 #define CONTROLT1    0x00 // file's size
@@ -24,6 +24,10 @@ struct applicationLayer {
 
 struct applicationLayer al;
 
-int initApplicationLayer();
+void sendControlPacket(int fd, char* filename, unsigned char control_byte);
 
-void sendControlPacket();
+int sendPacket(int fd, int seqNumber, char * buffer, int length);
+
+void receiveControlPacket();
+
+int receivePacket(int fd, unsigned char ** buffer, int seqNumber);
