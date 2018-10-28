@@ -218,6 +218,51 @@ int llopen(char* serialport, int status) {
     return fd;
 }
 
+int llwrite(int fd, unsigned char * buffer, unsigned int length) {
+  unsigned int totalLength = 6 + length;
+  unsigned char IFrame[totalLength], BCC2;
+
+  IFrame[0] = FLAG;
+  IFrame[1] = TRANSMITTERSA; // só o emissor chama a llwrite (o recetor não envia tramas I)
+
+  if(ll.sequenceNumber == 0) {
+    IFrame[2] = CONTROL0;
+  }
+  else if(ll.sequenceNumber == 1) {
+    IFrame[2] = CONTROL1;
+  }
+
+  IFrame[3] = IFrame[1] ^ IFrame[2];
+
+  int i;
+  IFrame[4] = buffer[0];
+  IFrame[5] = buffer[1];
+  BCC2 = IFrame[4] ^ IFrame[5];
+  for(i = 5; i < length + 4; i++) {
+    IFrame[i] = buffer[i-4];
+    BCC2 = BCC2 ^ IFrame[i];
+  }
+
+  IFrame[length-2] = BCC2;
+  IFrame[length-1] = FLAG;
+
+  if(ll.sequenceNumber == 0) {
+    ll.sequenceNumber = 1;
+  }
+  else if(ll.sequenceNumber == 1) {
+    ll.sequenceNumber = 0;
+  }
+
+  int res = write(fd, IFrame, totalLength);
+  sleep(1);
+
+  ll.retransmit = FALSE;
+  ll.numRetransmissions = 3;
+  alarm(ll.timeout);
+
+  return res;
+}
+
 int establishConnection(int fd, int status) {
     setSET();
     setUAck(RECEIVER);
@@ -234,7 +279,7 @@ int establishConnection(int fd, int status) {
     return 0;
 }
 
-int llread(int fd, char* buffer) {
+int llread(int fd, unsigned char * buffer) {
     enum states {
         INIT,
         F,
@@ -344,7 +389,7 @@ int llread(int fd, char* buffer) {
     return *lengthOfCharsRead;
 }
 
-int checkBCC(unsigned char* message, int sizeMessage) {
+int checkBCC(unsigned char * message, int sizeMessage) {
     int i = 1;
     unsigned char BCC2 = message[0];
     for (; i < sizeMessage - 1; i++) {

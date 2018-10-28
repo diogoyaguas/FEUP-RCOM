@@ -24,6 +24,8 @@
 #define ESCAPE 0x7D
 #define PATTERNFLAG 0x5E
 #define PATTERNESCAPE 0x5D
+
+// I Frames
 #define CONTROL0 0x00
 #define CONTROL1 0X40
 
@@ -47,7 +49,8 @@ struct linkLayer ll;
 void retransmission(int signum);
 
 int llopen(char * serialport, int status);
-int llwrite(unsigned char * buffer, int length);
+int llwrite(int fd, unsigned char * buffer, unsigned int length);
+int llread(int fd, unsigned char * buffer);
 
 void setSET();
 void setUAck(int status);

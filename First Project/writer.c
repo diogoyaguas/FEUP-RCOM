@@ -31,6 +31,7 @@ int main(int argc, char** argv) {
 		ll.numRetransmissions = 3;
 		ll.frameSLength = 5;
 		ll.retransmit = FALSE;
+    ll.sequenceNumber = 0;
 
     if ( tcgetattr(al.fileDescriptor,&oldtio) == -1) { /* save current port settings */
       perror("tcgetattr");
