@@ -36,7 +36,7 @@ int initApplicationLayer(char * serialport, int status, char * filename) {
 	al.fileDescriptor = llopen(serialport, status);
 
 	if(al.fileDescriptor < 0){
-	    printf("Application Layer - set_connection(): invalid file descriptor\n");
+	    perror("Application Layer - initApplicationLayer");
 	    exit(-1);
 	}
 
@@ -45,7 +45,7 @@ int initApplicationLayer(char * serialport, int status, char * filename) {
 	if(file != NULL) {
 		al.fileName = (char *) malloc(sizeof(char) * MAX_FILE_NAME);
 		strncpy(al->fileName, filename, MAX_FILE_NAME);
-	} 
+	}
 	else return -1;
 
 }
@@ -63,4 +63,3 @@ void destroyApplicationLayer() {
 void sendControlPacket() {
 
 }
-	

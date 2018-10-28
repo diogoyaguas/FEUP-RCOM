@@ -58,16 +58,10 @@ void setRR1();
 
 int establishConnection(int fd, int status);
 
-void sendSFrame(int fd, unsigned char * frame);
-void sendI(int fd);
+void sendSFrame(int fd, unsigned char * frame, int triggerAlarm);
+void receiveSFrame(int fd, int senderStatus, unsigned char controlByte, unsigned char * retransmit, unsigned int retransmitSize);
 
 int byteStuffingMechanism(unsigned char* message, unsigned char* charsRead, int* lengthOfCharsRead);
-
-void receiveUA(int fd, unsigned char * retransmit, unsigned int retransmitSize);
-void receiveSet(int fd);
-void receiveRR(int fd);
-void receiveI(int fd);
-void receiveDisc(int fd); // TO DO
 
 int checkBCC(unsigned char* message, int sizeMessage);
 
