@@ -10,7 +10,6 @@
 #include <signal.h>
 #include <unistd.h>
 #include "applicationLayer.h"
-#include "linkLayer.h"
 
 #define BAUDRATE B38400
 #define MODEMDEVICE "/dev/ttyS1"

@@ -178,7 +178,7 @@ void receiveSFrame(int fd, int senderStatus, unsigned char controlByte, unsigned
           }
           else {
             receiveState = INIT;
-            printf("BCC error while reading UA\n");
+            printf("BCC error while reading \n");
             break;
           }
 
@@ -202,6 +202,118 @@ void receiveSFrame(int fd, int senderStatus, unsigned char controlByte, unsigned
 
   }
 
+}
+
+/* só termina quando ler ou quando acabarem as retransmissões */
+void receiveRRREJ(int fd, unsigned char rr, unsigned char rej, unsigned char * retransmit, unsigned int retransmitSize) {
+  enum receiveStates {
+    INIT,
+    F,
+    FA,
+    FAC,
+    FACBCC
+  } receiveState;
+
+  receiveState = INIT;
+  int res;
+  unsigned char byte, controlByte;
+  int unreceived = TRUE;
+
+  while(unreceived) {
+
+    if(retransmit != NULL) {
+      if(ll.retransmit) {
+        if (ll.numRetransmissions == 0) {
+            printf("No more retransmissions, leaving.\n");
+            exit(-1);
+        }
+        res = write(fd, retransmit, retransmitSize);
+        printf("Frame sent again (bytes: %d)\n", res);
+        ll.numRetransmissions--;
+        alarm(ll.timeout);
+        ll.retransmit = FALSE;
+      }
+    }
+
+    res = read(fd, &byte, 1);
+    if(res<0) {
+      perror("Receiving reading error");
+    }
+
+    switch(receiveState) {
+      case INIT:
+          if (byte == FLAG)
+              receiveState = F;
+          break;
+
+      case F:
+          if(byte == RECEIVERSA) {
+            receiveState = FA;
+            break;
+          }
+          else if(byte == FLAG) {
+            receiveState = F;
+            break;
+          }
+          else {
+            receiveState = INIT;
+            break;
+          }
+
+      case FA:
+          if (byte == rr) {
+            controlByte = rr;
+            receiveState = FAC;
+            break;
+          }
+          else if(byte == rej) {
+            controlByte = rej;
+            ll.retransmit = TRUE;
+            break;
+          }
+          else if (byte == FLAG) {
+            receiveState = F;
+            break;
+          }
+          else {
+            receiveState = INIT;
+            break;
+          }
+
+      case FAC:
+          if (byte == (RECEIVERSA ^ controlByte)) {
+            receiveState = FACBCC;
+            break;
+          }
+          else if (byte == FLAG) {
+            receiveState = F;
+            break;
+          }
+          else {
+            receiveState = INIT;
+            printf("BCC error while reading\n");
+            break;
+          }
+
+      case FACBCC:
+          if (byte == FLAG) {
+              unreceived = FALSE;
+              alarm(0);
+              ll.numRetransmissions = 3;
+              ll.retransmit = FALSE;
+              printf("Received frame\n");
+              break;
+          }
+          else {
+            receiveState = INIT;
+            break;
+          }
+
+      default:
+          break;
+    }
+
+  }
 }
 
 int llopen(char* serialport, int status) {
@@ -249,21 +361,25 @@ int llwrite(int fd, unsigned char * buffer, unsigned int length) {
   IFrame[length-2] = BCC2;
   IFrame[length-1] = FLAG;
 
-  if(ll.sequenceNumber == 0) {
-    ll.sequenceNumber = 1;
-  }
-  else if(ll.sequenceNumber == 1) {
-    ll.sequenceNumber = 0;
-  }
-
   unsigned char * stuffedFrame = byteStuffing(IFrame, &totalLength);
   int res = write(fd, stuffedFrame, totalLength);
   sleep(1);
+
+  alarm(ll.timeout);
+
+  if(ll.sequenceNumber == 0) {
+    receiveRRREJ(fd, RR_CONTROL1, REJ_CONTROL1, stuffedFrame, totalLength);
+    ll.sequenceNumber = 1;
+  }
+  else if(ll.sequenceNumber == 1) {
+    receiveRRREJ(fd, RR_CONTROL0, REJ_CONTROL0, stuffedFrame, totalLength);
+    ll.sequenceNumber = 0;
+  }
+
   free(stuffedFrame);
 
   ll.retransmit = FALSE;
   ll.numRetransmissions = 3;
-  alarm(ll.timeout);
 
 
   return res;
@@ -323,6 +439,7 @@ int establishConnection(int fd, int status) {
 /*
 Para ler tramas i
 */
+
 /*
 int llread(int fd, unsigned char * buffer) {
     enum states {

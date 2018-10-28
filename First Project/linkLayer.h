@@ -75,6 +75,7 @@ retransmit: no caso de haver timeout, que trama queremos retransmitir? se não h
 retransmitSize: tamanho da trama de retransmissão
 */
 void receiveSFrame(int fd, int senderStatus, unsigned char controlByte, unsigned char * retransmit, unsigned int retransmitSize);
+void receiveRRREJ(int fd, unsigned char rr, unsigned char rej, unsigned char * retransmit, unsigned int retransmitSize);
 
 int byteStuffingMechanism(unsigned char* message, unsigned char* charsRead, int* lengthOfCharsRead);
 
