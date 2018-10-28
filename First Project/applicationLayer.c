@@ -1,45 +1,43 @@
 #include "applicationLayer.h"
-#include "linkLayer.h"
 
-void sendControlPacket(int fd, char *filename, unsigned char control_byte) {
-  struct stat f_information;
+void sendControlPacket(int fd, char* filename, unsigned char control_byte) {
+	struct stat f_information;
+	
+	if(fstat(fd, &f_information) < 0){
+		perror("Couldn't obtain information regarding the file.");
+	    exit(-1);
+	}
 
-  if (fstat(fd, &f_information) < 0) {
-    perror("Couldn't obtain information regarding the file.");
-    exit(-1);
-  }
+	off_t f_size = f_information.st_size; 		/* total size, in signed bytes */
+	unsigned int v1 = sizeof(f_size);
+	unsigned int v2 = strlen(filename);
 
-  off_t f_size = f_information.st_size; /* total size, in signed bytes */
-  unsigned int v1 = sizeof(f_size);
-  unsigned int v2 = strlen(filename);
 
-  int startpackage_len = 5 + v1 + v2; /* In order to assure continuity of
-                                         5bytes(C, T1, L1, T2, L2) +
-                                         correspondent V */
+	int startpackage_len = 5 + v1 + v2;			/*In order to assure continuity of 5bytes(C, T1, L1, T2, L2) + correspondent V */
+	
+	unsigned char startpackage[startpackage_len];
 
-  unsigned char startpackage[startpackage_len];
-  unsigned int index = 0;
+	startpackage[0] = control_byte;
+	startpackage[1] = CONTROLT1;
+	startpackage[2] = v1;
+ 	*((off_t *)(startpackage[3])) = f_size; 		/*POSIX standard in which is assigned an integer in regards to a filesize*/
+	startpackage[3 + v1] = CONTROLT2;
+	startpackage[3 + v1 + 1] = v2; /* +1 from CONTROLT2 */
 
-  startpackage[index++] = control_byte;
-  startpackage[index++] = CONTROLT1;
-  startpackage[index++] = v1;
-  *((off_t *)(startpackage + 3)) = f_size; /* POSIX standard in which is assigned an integer in regards to a filesize*/
-  startpackage[index++] = CONTROLT2;
-  startpackage[index++] = v2;
+ 	strcat((char *)startpackage + 5 + sizeof(f_information.st_size), filename);
 
-  strcat((char *)startpackage + 5 + sizeof(f_information.st_size), filename);
 
-  if (control_byte == CONTROLSTART) {
-    printf("\n||File: %s ||\n", filename);
-    printf("||Size: %ld (bytes)||\n\n", f_size);
-  }
+	if(control_byte == CONTROLSTART){
+		printf("\n||File: %s ||\n", filename);
+		printf("||Size: %ld (bytes)||\n\n", f_size);
+	}
 
-  if (!llwrite(fd, startpackage, startpackage_len)) {
-    printf("Couldn't write control package.\n");
-    exit(-1);
-  }
+	if (!llwrite(fd, startpackage,startpackage_len)) {
+		printf("Couldn't write control package.\n");
+	    exit(-1);
+	}
 
-  return;
+	return;
 }
 
 int sendPacket(int fd, int seqNumber, char *buffer, int length) {
