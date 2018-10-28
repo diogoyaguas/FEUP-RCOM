@@ -105,7 +105,7 @@ void receiveSFrame(int fd, int senderStatus, unsigned char controlByte, unsigned
         res = write(fd, retransmit, retransmitSize);
         printf("Frame sent again (bytes: %d)\n", res);
         ll.numRetransmissions--;
-        alarm(3);
+        alarm(ll.timeout);
         ll.retransmit = FALSE;
       }
     }

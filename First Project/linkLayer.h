@@ -58,7 +58,18 @@ void setRR1();
 
 int establishConnection(int fd, int status);
 
+/*
+frame: trama a enviar
+triggerAlarm: acionar timeout? TRUE ou FALSE
+*/
 void sendSFrame(int fd, unsigned char * frame, int triggerAlarm);
+
+/*
+senderStatus: quem mandou a trama que queremos ler? TRANSMITTER ou RECEIVER
+controlByte: C da trama que estamos a ler (SET, UA, DISC, RR, ...)
+retransmit: no caso de haver timeout, que trama queremos retransmitir? se não houver timeout retransmit deve ser NULL
+retransmitSize: tamanho da trama de retransmissão
+*/
 void receiveSFrame(int fd, int senderStatus, unsigned char controlByte, unsigned char * retransmit, unsigned int retransmitSize);
 
 int byteStuffingMechanism(unsigned char* message, unsigned char* charsRead, int* lengthOfCharsRead);
