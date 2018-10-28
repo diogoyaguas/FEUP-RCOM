@@ -1,5 +1,4 @@
 #include "applicationLayer.h"
-#include "linkLayer.h"
 
 /*
 int llwrite(unsigned char * buffer, int length) {
@@ -31,7 +30,7 @@ int llwrite(unsigned char * buffer, int length) {
 
 int initApplicationLayer(char * serialport, int status, char * filename) {
 
-	al = (applicationLayer*) malloc(sizeof(applicationLayer));
+	al = (al*) malloc(sizeof(al));
 
 	al.fileDescriptor = llopen(serialport, status);
 

@@ -8,6 +8,7 @@
 #include <signal.h>
 #include <unistd.h>
 #include "utils.h"
+#include "linkLayer.h"
 
 #define CONTROLSTART 0x02 // control byte in control packet with value start
 #define CONTROLEND   0x03 // control byte in control packet with value end
