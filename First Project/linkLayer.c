@@ -218,6 +218,9 @@ int llopen(char* serialport, int status) {
     return fd;
 }
 
+/*
+Pra mandar tramas i com a mensagem buffer no campo de dados
+*/
 int llwrite(int fd, unsigned char * buffer, unsigned int length) {
   unsigned int totalLength = 6 + length;
   unsigned char IFrame[totalLength], BCC2;
@@ -253,14 +256,52 @@ int llwrite(int fd, unsigned char * buffer, unsigned int length) {
     ll.sequenceNumber = 0;
   }
 
-  int res = write(fd, IFrame, totalLength);
+  unsigned char * stuffedFrame = byteStuffing(IFrame, &totalLength);
+  int res = write(fd, stuffedFrame, totalLength);
   sleep(1);
+  free(stuffedFrame);
 
   ll.retransmit = FALSE;
   ll.numRetransmissions = 3;
   alarm(ll.timeout);
 
+
   return res;
+}
+
+unsigned char * byteStuffing(unsigned char * frame, unsigned int * length) {
+  unsigned char * stuffedFrame = (unsigned char *) malloc(*length);
+  unsigned int finalLength = *length;
+
+  int i, j = 0;
+  stuffedFrame[j++] = FLAG;
+
+  //excluir FLAG inicial e final
+  for(i = 1; i < *length - 2; i++) {
+    if(frame[i] == FLAG) {
+      stuffedFrame = (unsigned char *) realloc(stuffedFrame, ++finalLength);
+      stuffedFrame[j] = ESCAPE;
+      stuffedFrame[++j] = PATTERNFLAG;
+      j++;
+      continue;
+    }
+    else if(frame[i] == ESCAPE) {
+      stuffedFrame = (unsigned char *) realloc(stuffedFrame, ++finalLength);
+      stuffedFrame[j] = ESCAPE;
+      stuffedFrame[++j] = PATTERNESCAPE;
+      j++;
+      continue;
+    }
+    else {
+      stuffedFrame[j++] = frame[i];
+    }
+  }
+
+  stuffedFrame[j] = FLAG;
+
+  *length = finalLength;
+
+  return stuffedFrame;
 }
 
 int establishConnection(int fd, int status) {
@@ -279,6 +320,10 @@ int establishConnection(int fd, int status) {
     return 0;
 }
 
+/*
+Para ler tramas i
+*/
+/*
 int llread(int fd, unsigned char * buffer) {
     enum states {
         INIT,
@@ -290,7 +335,7 @@ int llread(int fd, unsigned char * buffer) {
     } state;
     state = INIT;
 
-    unsigned char* message;
+    unsigned char message;
     unsigned char messageRead;
     int unreceived = 1;
     int packetType;
@@ -388,6 +433,7 @@ int llread(int fd, unsigned char * buffer) {
 
     return *lengthOfCharsRead;
 }
+*/
 
 int checkBCC(unsigned char * message, int sizeMessage) {
     int i = 1;
@@ -412,6 +458,7 @@ void sendControlMessage(int fd, unsigned char c) {
     write(fd, message, 5);
 }
 
+/*
 int byteStuffingMechanism(unsigned char* message, unsigned char* charsRead, int* lengthOfCharsRead){
     if (*message == PATTERNFLAG) {
         charsRead = (unsigned char*)realloc(charsRead, ++(*lengthOfCharsRead));
@@ -427,6 +474,7 @@ int byteStuffingMechanism(unsigned char* message, unsigned char* charsRead, int*
         }
     }
 }
+*/
 
 int llclose(int fd, int status) {
 

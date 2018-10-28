@@ -50,6 +50,7 @@ void retransmission(int signum);
 
 int llopen(char * serialport, int status);
 int llwrite(int fd, unsigned char * buffer, unsigned int length);
+unsigned char * byteStuffing(unsigned char * frame, unsigned int * length);
 int llread(int fd, unsigned char * buffer);
 
 void setSET();
