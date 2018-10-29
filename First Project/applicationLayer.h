@@ -16,19 +16,20 @@
 #define CONTROLT2    0x01 // file's name
 
 struct applicationLayer {
-	int fileDescriptor; // ficheiro
-	int fd; // porta de série
-  int status;
+	int fileDescriptor;
+	int fd;
+  	int status;
 	char* filename;
+	unsigned char * file_data;
 	char controlPacket[];
 };
 
 struct applicationLayer al;
 
-void sendControlPacket(int fd, char* filename, unsigned char control_byte);
+void sendControlPacket(unsigned char control_byte);
 
 int sendPacket(int fd, int seqNumber, char * buffer, int length);
 
-void receiveControlPacket();
+void receiveControlPacket(int* file_length, char**filename);
 
 int receivePacket(int fd, unsigned char ** buffer, int seqNumber);
