@@ -35,10 +35,12 @@ struct linkLayer {
 	unsigned int sequenceNumber;
 	unsigned int timeout;
 	unsigned int numRetransmissions;
+	unsigned int maxRetransmissions;
 	unsigned char SET[5];
 	unsigned char UAck[5];
 	unsigned char DISC[5];
 	unsigned char RR[5];
+	unsigned char REJ[5];
   size_t frameSLength;
   size_t frameILength;
   volatile int retransmit;
@@ -59,6 +61,9 @@ void setDisc(int status);
 void setRR();
 void setRR0();
 void setRR1();
+void setREJ();
+void setREJ0();
+void setREJ1();
 
 int establishConnection(int fd, int status);
 

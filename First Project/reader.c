@@ -21,7 +21,7 @@ int main(int argc, char** argv)
     struct termios oldtio, newtio;
 
     al.status = RECEIVER;
-    al.fileDescriptor = llopen(argv[1], al.status);
+    al.fd = llopen(argv[1], al.status);
 
     ll.timeout = 3;
     ll.numRetransmissions = 3;
@@ -38,7 +38,7 @@ int main(int argc, char** argv)
     because we don't want to get killed if linenoise sends CTRL-C.
   */
 
-    if (tcgetattr(al.fileDescriptor, &oldtio) == -1) { /* save current port settings */
+    if (tcgetattr(al.fd, &oldtio) == -1) { /* save current port settings */
         perror("tcgetattr");
         exit(-1);
     }
@@ -59,9 +59,9 @@ int main(int argc, char** argv)
     leitura do(s) pr�ximo(s) caracter(es)
   */
 
-    tcflush(al.fileDescriptor, TCIOFLUSH);
+    tcflush(al.fd, TCIOFLUSH);
 
-    if (tcsetattr(al.fileDescriptor, TCSANOW, &newtio) == -1) {
+    if (tcsetattr(al.fd, TCSANOW, &newtio) == -1) {
         perror("tcsetattr");
         exit(-1);
     }
@@ -70,9 +70,9 @@ int main(int argc, char** argv)
 
     //estabelecer conexao
 
-    establishConnection(al.fileDescriptor, al.status);
+    establishConnection(al.fd, al.status);
 
-    tcsetattr(al.fileDescriptor, TCSANOW, &oldtio);
-    close(al.fileDescriptor);
+    tcsetattr(al.fd, TCSANOW, &oldtio);
+    close(al.fd);
     return 0;
 }

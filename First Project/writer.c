@@ -24,15 +24,16 @@ int main(int argc, char** argv) {
   */
 
 		al.status = TRANSMITTER;
-		al.fileDescriptor = llopen(argv[1], al.status);
+		al.fd = llopen(argv[1], al.status);
 
 		ll.timeout = 3;
-		ll.numRetransmissions = 3;
+    ll.maxRetransmissions = 3;
+		ll.numRetransmissions = ll.maxRetransmissions;
 		ll.frameSLength = 5;
 		ll.retransmit = FALSE;
     ll.sequenceNumber = 0;
 
-    if ( tcgetattr(al.fileDescriptor,&oldtio) == -1) { /* save current port settings */
+    if ( tcgetattr(al.fd,&oldtio) == -1) { /* save current port settings */
       perror("tcgetattr");
       exit(-1);
     }
@@ -53,9 +54,9 @@ int main(int argc, char** argv) {
     leitura do(s) pr�ximo(s) caracter(es)
   */
 
-    tcflush(al.fileDescriptor, TCIOFLUSH);
+    tcflush(al.fd, TCIOFLUSH);
 
-    if ( tcsetattr(al.fileDescriptor,TCSANOW,&newtio) == -1) {
+    if ( tcsetattr(al.fd,TCSANOW,&newtio) == -1) {
       perror("tcsetattr");
       exit(-1);
     }
@@ -66,9 +67,9 @@ int main(int argc, char** argv) {
 
     //estabelecer conexao
 
-		establishConnection(al.fileDescriptor, al.status);
+		establishConnection(al.fd, al.status);
 
-    tcsetattr(al.fileDescriptor, TCSANOW, &oldtio);
-    close(al.fileDescriptor);
+    tcsetattr(al.fd, TCSANOW, &oldtio);
+    close(al.fd);
     return 0;
 }

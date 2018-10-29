@@ -60,6 +60,22 @@ void setRR1(){
   setRR();
 }
 
+void setREJ(){
+  ll.REJ[0] = FLAG;
+  ll.REJ[1] = RECEIVERSA;
+  ll.REJ[3] = ll.REJ[1] ^ ll.REJ[2];
+  ll.REJ[4] = FLAG;
+}
+
+void setREJ0(){
+  ll.REJ[2] = REJ_CONTROL0;
+  setREJ();
+}
+
+void setREJ1(){
+  ll.REJ[2] = REJ_CONTROL1;
+}
+
 void sendSFrame(int fd, unsigned char * frame, int triggerAlarm) {
     int res;
 
@@ -186,7 +202,7 @@ void receiveSFrame(int fd, int senderStatus, unsigned char controlByte, unsigned
           if (byte == FLAG) {
               unreceived = FALSE;
               alarm(0);
-              ll.numRetransmissions = 3;
+              ll.numRetransmissions = ll.maxRetransmissions;
               ll.retransmit = FALSE;
               printf("Received frame\n");
               break;
@@ -204,7 +220,7 @@ void receiveSFrame(int fd, int senderStatus, unsigned char controlByte, unsigned
 
 }
 
-/* só termina quando ler ou quando acabarem as retransmissões */
+/* só termina quando ler rr ou quando acabarem as retransmissões */
 void receiveRRREJ(int fd, unsigned char rr, unsigned char rej, unsigned char * retransmit, unsigned int retransmitSize) {
   enum receiveStates {
     INIT,
@@ -269,6 +285,7 @@ void receiveRRREJ(int fd, unsigned char rr, unsigned char rej, unsigned char * r
           else if(byte == rej) {
             controlByte = rej;
             ll.retransmit = TRUE;
+            ll.numRetransmissions++;
             break;
           }
           else if (byte == FLAG) {
@@ -299,7 +316,7 @@ void receiveRRREJ(int fd, unsigned char rr, unsigned char rej, unsigned char * r
           if (byte == FLAG) {
               unreceived = FALSE;
               alarm(0);
-              ll.numRetransmissions = 3;
+              ll.numRetransmissions = ll.maxRetransmissions;
               ll.retransmit = FALSE;
               printf("Received frame\n");
               break;
@@ -328,6 +345,66 @@ int llopen(char* serialport, int status) {
     signal(SIGALRM, retransmission);
 
     return fd;
+}
+
+int establishConnection(int fd, int status) {
+    setSET();
+    setUAck(RECEIVER);
+
+    if (status == TRANSMITTER) {
+        sendSFrame(fd, ll.SET, TRUE);
+        receiveSFrame(fd, RECEIVER, UA, ll.SET, ll.frameSLength);
+    }
+    else if (status == RECEIVER) {
+        receiveSFrame(fd, TRANSMITTER, SETUP, NULL, 0);
+        sendSFrame(fd, ll.UAck, FALSE);
+    }
+
+    return 0;
+}
+
+unsigned char * byteStuffing(unsigned char * frame, unsigned int * length) {
+  unsigned char * stuffedFrame = (unsigned char *) malloc(*length);
+  unsigned int finalLength = *length;
+
+  int i, j = 0;
+  stuffedFrame[j++] = FLAG;
+
+  //excluir FLAG inicial e final
+  for(i = 1; i < *length - 2; i++) {
+    if(frame[i] == FLAG) {
+      stuffedFrame = (unsigned char *) realloc(stuffedFrame, ++finalLength);
+      stuffedFrame[j] = ESCAPE;
+      stuffedFrame[++j] = PATTERNFLAG;
+      j++;
+      continue;
+    }
+    else if(frame[i] == ESCAPE) {
+      stuffedFrame = (unsigned char *) realloc(stuffedFrame, ++finalLength);
+      stuffedFrame[j] = ESCAPE;
+      stuffedFrame[++j] = PATTERNESCAPE;
+      j++;
+      continue;
+    }
+    else {
+      stuffedFrame[j++] = frame[i];
+    }
+  }
+
+  stuffedFrame[j] = FLAG;
+
+  *length = finalLength;
+
+  return stuffedFrame;
+}
+
+unsigned char * byteDestuffing(unsigned char * data, unsigned int length){
+  unsigned int finalLength = 0;
+  unsigned char * data = malloc(finalLength);
+  int i;
+  for(i=0; i<length; i++) {
+    if(data[i])
+  }
 }
 
 /*
@@ -368,193 +445,134 @@ int llwrite(int fd, unsigned char * buffer, unsigned int length) {
   alarm(ll.timeout);
 
   if(ll.sequenceNumber == 0) {
-    receiveRRREJ(fd, RR_CONTROL1, REJ_CONTROL1, stuffedFrame, totalLength);
+    receiveRRREJ(fd, RR_CONTROL1, REJ_CONTROL0, stuffedFrame, totalLength);
     ll.sequenceNumber = 1;
   }
   else if(ll.sequenceNumber == 1) {
-    receiveRRREJ(fd, RR_CONTROL0, REJ_CONTROL0, stuffedFrame, totalLength);
+    receiveRRREJ(fd, RR_CONTROL0, REJ_CONTROL1, stuffedFrame, totalLength);
     ll.sequenceNumber = 0;
   }
 
   free(stuffedFrame);
 
   ll.retransmit = FALSE;
-  ll.numRetransmissions = 3;
+  ll.numRetransmissions = ll.maxRetransmissions;
 
 
   return res;
 }
 
-unsigned char * byteStuffing(unsigned char * frame, unsigned int * length) {
-  unsigned char * stuffedFrame = (unsigned char *) malloc(*length);
-  unsigned int finalLength = *length;
-
-  int i, j = 0;
-  stuffedFrame[j++] = FLAG;
-
-  //excluir FLAG inicial e final
-  for(i = 1; i < *length - 2; i++) {
-    if(frame[i] == FLAG) {
-      stuffedFrame = (unsigned char *) realloc(stuffedFrame, ++finalLength);
-      stuffedFrame[j] = ESCAPE;
-      stuffedFrame[++j] = PATTERNFLAG;
-      j++;
-      continue;
-    }
-    else if(frame[i] == ESCAPE) {
-      stuffedFrame = (unsigned char *) realloc(stuffedFrame, ++finalLength);
-      stuffedFrame[j] = ESCAPE;
-      stuffedFrame[++j] = PATTERNESCAPE;
-      j++;
-      continue;
-    }
-    else {
-      stuffedFrame[j++] = frame[i];
-    }
-  }
-
-  stuffedFrame[j] = FLAG;
-
-  *length = finalLength;
-
-  return stuffedFrame;
-}
-
-int establishConnection(int fd, int status) {
-    setSET();
-    setUAck(RECEIVER);
-
-    if (status == TRANSMITTER) {
-        sendSFrame(fd, ll.SET, TRUE);
-        receiveSFrame(fd, RECEIVER, UA, ll.SET, ll.frameSLength);
-    }
-    else if (status == RECEIVER) {
-        receiveSFrame(fd, TRANSMITTER, SETUP, NULL, 0);
-        sendSFrame(fd, ll.UAck, FALSE);
-    }
-
-    return 0;
-}
-
 /*
 Para ler tramas i
+retornar nr de caracteres lidos
+colocar no buffer caracteres lidos
 */
-
-/*
 int llread(int fd, unsigned char * buffer) {
     enum states {
         INIT,
         F,
         FA,
         FAC,
-        FACBCC,
-        FACBCCF
+        FACBCCD,
+        FACBCCDBCCF
     } state;
     state = INIT;
 
-    unsigned char message;
-    unsigned char messageRead;
-    int unreceived = 1;
-    int packetType;
+    unsigned char byte, controlByte;
+    unsigned int sequenceNumber;
+    int unreceived = TRUE;
 
-    unsigned char* charsRead = (unsigned char*)malloc(0);
-    unsigned int* lengthOfCharsRead = 0;
+    unsigned int length = 0;
+    unsigned char * dbcc = (unsigned char *) malloc(length);
 
     while (unreceived) {
-        int res = read(fd, &message, 1);
-
-        // Reception of the packet
-        printf("read %x %d\n", message, res);
+        int res = read(fd, &byte, 1);
 
         switch (state) {
+
         case INIT:
-            if (*message == FLAG)
-                state = F;
-            break;
+            if (byte == FLAG) {
+              state = F;
+              break;
+            }
 
         case F:
-            if (*message == TRANSMITTERSA)
-                state = FA;
-            else if (*message == FLAG)
-                state = F;
-            else
-                state = INIT;
-            break;
-
-        case FA:
-            if (*message == CONTROL0) {
-                packetType = 0;
-                messageRead = *message;
-                state = FAC;
+            if (byte == TRANSMITTERSA) {
+              state = FA;
+              break;
             }
-            else if (*message == CONTROL1) {
-                packetType = 1;
-                messageRead = *message;
-                state = FAC;
-            }
-            else if (*message == FLAG)
-                state = F;
-            else
-                state = INIT;
-            break;
-
-        case FAC:
-            if (*message == (TRANSMITTERSA ^ messageRead))
-                state = FACBCC;
-            else
-                state = INIT;
-            break;
-
-        case FACBCC:
-            if (*message == FLAG) {
-                if (checkBCC(charsRead, *lengthOfCharsRead)) {
-                    if (packetType)
-                        sendControlMessage(fd, RR_CONTROL0);
-                    else
-                        sendControlMessage(fd, RR_CONTROL1);
-
-                    unreceived = 1;
-                    printf("Send 'Receiver Ready', P: %d\n", packetType);
-                }
-                else {
-                    if (packetType)
-                        sendControlMessage(fd, REJ_CONTROL0);
-                    else
-                        sendControlMessage(fd, REJ_CONTROL1);
-
-                    unreceived = 1;
-                    printf("Send 'Reject' , P: %d\n", packetType);
-                }
-            }
-            else if (*message == ESCAPE) {
-                state = FACBCCF;
+            else if (byte == FLAG) {
+              state = F;
+              break;
             }
             else {
-                charsRead = (unsigned char*)realloc(message, ++(*lengthOfCharsRead));
-                charsRead[*lengthOfCharsRead - 1] = *message;
-            }
-            break;
-
-        case FACBCCF:
-
-            if (byteStuffingMechanism(message, charsRead, lengthOfCharsRead) == -1) {
-
-                perror("Non valid character after escape character");
-                return -1;
+              state = INIT;
+              break;
             }
 
-            state = FACBCC;
-            break;
+        case FA:
+            if (byte == CONTROL0) {
+              controlByte = CONTROL0;
+              sequenceNumber = 0;
+              state = FAC;
+              break;
+            }
+            else if (byte == CONTROL1) {
+              controlByte = CONTROL1;
+              sequenceNumber = 1;
+              state = FAC;
+              break;
+            }
+            else if (byte == FLAG) {
+              state = F;
+              break;
+            }
+            else {
+              state = INIT;
+              break;
+            }
+
+        case FAC:
+            if (byte == (TRANSMITTERSA ^ controlByte)) {
+              state = FACBCCD;
+              break;
+            }
+            else if(byte == FLAG) {
+              state = F;
+              break;
+            }
+            else {
+              state = INIT;
+              break;
+            }
+
+        case FACBCCD:
+          if(byte == FLAG) {
+            state = FACBCCDBCCF;
+            byteDestuffing(dbcc, length);
+            checkBCC(dbcc, length);
+          }
+
+          else {
+            dbcc = realloc(dbcc, ++length);
+            dbcc[length-1] = byte;
+          }
+
+        case FACBCCDBCCF:
+          unreceived = FALSE;
+
+
         }
     }
 
-    return *lengthOfCharsRead;
+    free(dbcc);
+    return length;
 }
-*/
 
-int checkBCC(unsigned char * message, int sizeMessage) {
+/* data = D1.....Dn BCC2*/
+int checkBCC(unsigned char * data, int length) {
     int i = 1;
-    unsigned char BCC2 = message[0];
+    unsigned char BCC2 = data[0];
     for (; i < sizeMessage - 1; i++) {
         BCC2 ^= message[i];
     }
@@ -574,24 +592,6 @@ void sendControlMessage(int fd, unsigned char c) {
     message[4] = FLAG;
     write(fd, message, 5);
 }
-
-/*
-int byteStuffingMechanism(unsigned char* message, unsigned char* charsRead, int* lengthOfCharsRead){
-    if (*message == PATTERNFLAG) {
-        charsRead = (unsigned char*)realloc(charsRead, ++(*lengthOfCharsRead));
-        charsRead[*lengthOfCharsRead - 1] = FLAG;
-    }
-    else {
-        if (*message == PATTERNESCAPE) {
-            charsRead = (unsigned char*)realloc(charsRead, ++(*lengthOfCharsRead));
-            charsRead[*lengthOfCharsRead - 1] = ESCAPE;
-        }
-        else {
-            return -1;
-        }
-    }
-}
-*/
 
 int llclose(int fd, int status) {
 

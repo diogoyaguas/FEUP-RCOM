@@ -16,8 +16,9 @@
 #define CONTROLT2    0x01 // file's name
 
 struct applicationLayer {
-	int fileDescriptor;
-  	int status;
+	int fileDescriptor; // ficheiro
+	int fd; // porta de série
+  int status;
 	char* filename;
 	char controlPacket[];
 };
