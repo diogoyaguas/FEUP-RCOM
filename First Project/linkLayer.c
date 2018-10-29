@@ -194,7 +194,6 @@ void receiveSFrame(int fd, int senderStatus, unsigned char controlByte, unsigned
           }
           else {
             receiveState = INIT;
-            printf("BCC error while reading \n");
             break;
           }
 
@@ -398,13 +397,35 @@ unsigned char * byteStuffing(unsigned char * frame, unsigned int * length) {
   return stuffedFrame;
 }
 
-unsigned char * byteDestuffing(unsigned char * data, unsigned int length){
+unsigned char * byteDestuffing(unsigned char * data, unsigned int * length){
   unsigned int finalLength = 0;
-  unsigned char * data = malloc(finalLength);
+  unsigned char * newData = malloc(finalLength);
+
   int i;
-  for(i=0; i<length; i++) {
-    if(data[i])
+  for(i=0; i< *length; i++) {
+
+    if(data[i] == ESCAPE) {
+      if(data[i+1] == PATTERNFLAG) {
+        newData = realloc(newData, ++finalLength);
+        newData[finalLength - 1] = FLAG;
+        continue;
+      }
+      else if(data[i+1] == PATTERNESCAPE) {
+        newData = realloc(newData, ++finalLength);
+        newData[finalLength-1] = ESCAPE;
+        continue;
+      }
+    }
+
+    else {
+      newData = realloc(newData, ++finalLength);
+      newData[finalLength - 1] = data[i];
+    }
+
   }
+
+  *length = finalLength;
+  return newData;
 }
 
 /*
@@ -466,6 +487,7 @@ int llwrite(int fd, unsigned char * buffer, unsigned int length) {
 Para ler tramas i
 retornar nr de caracteres lidos
 colocar no buffer caracteres lidos
+NOTA: buffer tem que ser alocado com malloc antes de chamar llread!!!
 */
 int llread(int fd, unsigned char * buffer) {
     enum states {
@@ -484,9 +506,14 @@ int llread(int fd, unsigned char * buffer) {
 
     unsigned int length = 0;
     unsigned char * dbcc = (unsigned char *) malloc(length);
+    unsigned char * destuffed;
 
     while (unreceived) {
         int res = read(fd, &byte, 1);
+
+        if(res<0) {
+          perror("Receiving reading error");
+        }
 
         switch (state) {
 
@@ -549,38 +576,75 @@ int llread(int fd, unsigned char * buffer) {
         case FACBCCD:
           if(byte == FLAG) {
             state = FACBCCDBCCF;
-            byteDestuffing(dbcc, length);
-            checkBCC(dbcc, length);
+            destuffed = byteDestuffing(dbcc, &length);
+            free(dbcc);
+            if(!checkBCC(destuffed, length)) {
+              if(sequenceNumber == 0) {
+                setREJ0();
+                sendSFrame(fd, ll.REJ, FALSE);
+                return -1;
+              }
+              else if(sequenceNumber == 1) {
+                setREJ1();
+                sendSFrame(fd, ll.REJ, FALSE);
+                return -1;
+              }
+            }
+
+            break;
           }
 
           else {
             dbcc = realloc(dbcc, ++length);
             dbcc[length-1] = byte;
+            break;
           }
 
         case FACBCCDBCCF:
           unreceived = FALSE;
+          break;
 
-
+        default:
+          break;
         }
     }
 
-    free(dbcc);
+        //copiar tudo exceto BCC2
+
+    buffer = realloc(buffer, --length);
+
+    int i;
+    for(i=0; i<length; i++) {
+      buffer[i] = destuffed[i];
+    }
+
+    if(sequenceNumber == 0) {
+      setRR1();
+      sendSFrame(fd, ll.RR, FALSE);
+    }
+    else if(sequenceNumber == 1) {
+      setRR0();
+      sendSFrame(fd, ll.RR, FALSE);
+    }
+
+    free(destuffed);
     return length;
 }
 
 /* data = D1.....Dn BCC2*/
 int checkBCC(unsigned char * data, int length) {
-    int i = 1;
+    int i;
     unsigned char BCC2 = data[0];
-    for (; i < sizeMessage - 1; i++) {
-        BCC2 ^= message[i];
+                  //exluir BCC2 (ocupa 1 byte)
+    for (i = 1; i < length - 1; i++) {
+        BCC2 ^= data[i];
     }
-    if (BCC2 == message[sizeMessage - 1]) {
-        return 1;
+                    //último elemento -> BCC2
+    if (BCC2 == data[length - 1]) {
+        return TRUE;
     }
     else
-        return 0;
+        return FALSE;
 }
 
 void sendControlMessage(int fd, unsigned char c) {

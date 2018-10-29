@@ -7,7 +7,7 @@
 #include <string.h>
 #include <signal.h>
 #include <unistd.h>
-#include "utils.h"
+#include "linkLayer.h"
 
 #define CONTROLDATA  0x01
 #define CONTROLSTART 0x02 // control byte in control packet with value start
