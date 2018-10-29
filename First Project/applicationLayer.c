@@ -1,46 +1,85 @@
 #include "applicationLayer.h"
 
-void sendControlPacket(unsigned char control_byte) {
-	struct stat f_information;
-	
-	if(fstat(al.fileDescriptor, &f_information) < 0){
-		perror("Couldn't obtain status information regarding the file.");
-	    exit(-1);
-	}
+int sendData(char *filename) {
 
-	off_t f_size = f_information.st_size; 		/* total size, in signed bytes */
-	unsigned int v1 = sizeof(f_size);
-	unsigned int v2 = strlen(al.filename);
+  if (sendControlPacket(al.fileDescriptor, filename, CONTROLSTART) < 0)
+    return -1;
 
+  int bytesRead = 0, seqNumber = 0;
+  char *buffer;
 
-	int startpackage_len = 5 + v1 + v2;			/*In order to assure continuity of 5bytes(C, T1, L1, T2, L2) + correspondent V */
-	
-	unsigned char startpackage[startpackage_len];
+  while ((bytesRead =
+              fread(buffer, sizeof(char), packetSize, al.fileDescriptor)) > 0) {
 
-	startpackage[0] = control_byte;
-	startpackage[1] = CONTROLT1;
-	startpackage[2] = v1;
- 	*((off_t *)(startpackage[3])) = f_size; 		/*POSIX standard in which is assigned an integer in regards to a filesize*/
-	startpackage[3 + v1] = CONTROLT2;
-	startpackage[3 + v1 + 1] = v2; /* +1 from CONTROLT2 */
+    if (sendPacket(seqNumber, buffer, bytesRead) < 0)
+      return -1;
 
- 	strcat((char *)startpackage + 5 + sizeof(f_information.st_size), al.filename);
+    seqNumber++;
+    // TODO VERIFICAR O QUE É PRECISO FAZER COM O SEQNUMBER
+  }
 
+  if (fclose(al.fileDescriptor) < 0) {
+    printf("Error closing the file.\n");
+    return -1;
+  }
 
-	if(control_byte == CONTROLSTART){
-		printf("\n||File: %s ||\n", al.filename);
-		printf("||Size: %ld (bytes)||\n\n", f_size);
-	}
+  if (sendControlPacket(al.fileDescriptor, filename, CONTROLEND) < 0)
+    return -1;
 
-	if (!llwrite(al.fileDescriptor, startpackage,startpackage_len)) {
-		printf("Couldn't write control package.\n");
-	    exit(-1);
-	}
-
-	return;
+  return 0;
 }
 
-int sendPacket(int fd, int seqNumber, char *buffer, int length) {
+int receiveData(char *filename) {
+
+  if (receiveControlPacket() < 0)
+    return -1;
+
+	//TODO COMPLETAR ESTA PARTE: FALTA RECEBER O DATA PACKET, FECHAR O FICHEIRO E RECEBER O CONTROL PACKET COM CONTROLEND
+}
+
+int sendControlPacket(char *filename, unsigned char control_byte) {
+  struct stat f_information;
+
+  if (fstat(al.fileDescripto, &f_information) < 0) {
+    perror("Couldn't obtain information regarding the file.");
+    return -1;
+  }
+
+  off_t f_size = f_information.st_size; /* total size, in signed bytes */
+  unsigned int v1 = sizeof(f_size);
+  unsigned int v2 = strlen(filename);
+
+  int startpackage_len = 5 + v1 + v2; /*In order to assure continuity of
+                                         5bytes(C, T1, L1, T2, L2) +
+                                         correspondent V */
+
+  unsigned char startpackage[startpackage_len];
+
+  startpackage[0] = control_byte;
+  startpackage[1] = CONTROLT1;
+  startpackage[2] = v1;
+  *((off_t *)(startpackage[3])) =
+      f_size; /*POSIX standard in which is assigned an integer in regards to a
+                 filesize*/
+  startpackage[3 + v1] = CONTROLT2;
+  startpackage[3 + v1 + 1] = v2; /* +1 from CONTROLT2 */
+
+  strcat((char *)startpackage + 5 + sizeof(f_information.st_size), filename);
+
+  if (control_byte == CONTROLSTART) {
+    printf("\n||File: %s ||\n", filename);
+    printf("||Size: %ld (bytes)||\n\n", f_size);
+  }
+
+  if (!llwrite(al.fd, startpackage, startpackage_len)) {
+    printf("Couldn't write control package.\n");
+   	return -1;
+  }
+
+  return 0;
+}
+
+int sendPacket(int seqNumber, char *buffer, int length) {
 
   int totalLength = length + 4;
   unsigned char dataPacket[totalLength];
@@ -52,7 +91,7 @@ int sendPacket(int fd, int seqNumber, char *buffer, int length) {
 
   memcpy(&dataPacket[4], buffer, length);
 
-  if (llwrite(fd, dataPacket, totalLength) < 0) {
+  if (llwrite(al.fd, dataPacket, totalLength) < 0) {
 
     printf("Error sending data packet");
   }
@@ -60,68 +99,64 @@ int sendPacket(int fd, int seqNumber, char *buffer, int length) {
   return 0;
 }
 
-void receiveControlPacket(int* file_length, char**filename) {
-	unsigned char *read_package;
+int receiveControlPacket() {
+  unsigned char *read_package;
   unsigned int package_size = llread(al.fd, &read_package);
 
-  if(package_size < 0) {
+  if (package_size < 0) {
     perror("Couldn't read linklayer whilst receving package.");
-	  exit(-1);
+    return -1;
   }
 
-  if(read_package[0] == CONTROLEND){ return; }  /*End of transfer process, nothing to process any further.*/
+  if (read_package[0] == CONTROLEND) {
+    return -1;
+  } /*End of transfer process, nothing to process any further.*/
 
   int pck_index = 1;
   unsigned int n_bytes;
 
-  for(int i = 0 ; i <= 1; i++){
+  for (int i = 0; i <= 1; i++) {
     int pck_type = read_package[pck_index++];
 
-    switch(pck_type){
-      case CONTROLT1:
-        n_bytes = (unsigned int) read_package[pck_index++];
+    switch (pck_type) {
+    case CONTROLT1:
+      n_bytes = (unsigned int)read_package[pck_index++];
 
-        
+      break;
 
-        break;
+    case CONTROLT2:
+      n_bytes = (unsigned int)read_package[pck_index++];
 
-      case CONTROLT2:
-        n_bytes = (unsigned int) read_package[pck_index++];
-
-      default:
+    default:
       printf("File parameter couldn't be recognised, moving ahead...");
     }
-
   }
-/*
-		if(paramType == PARAM_FILE_SIZE){
-			numBytes = (unsigned int) package[index++];
-
-			char* length = (char*)malloc(numBytes);
-			memcpy(length, &package[index], numBytes);
-
-			*fileLength = atoi(length);
-			free(length);
-		}
-		else if(paramType == PARAM_FILE_NAME){
-			numBytes = (unsigned char) package[index++];
-			memcpy(*fileName, &package[index], numBytes);
-		}
-		else
-			printf("Unrecognised file parameter, skipping\n");
-
-		index += numBytes;
-}
-*/
-  return;
+  /*
+                  if(paramType == PARAM_FILE_SIZE){
+                          numBytes = (unsigned int) package[index++];
+                          char* length = (char*)malloc(numBytes);
+                          memcpy(length, &package[index], numBytes);
+                          *fileLength = atoi(length);
+                          free(length);
+                  }
+                  else if(paramType == PARAM_FILE_NAME){
+                          numBytes = (unsigned char) package[index++];
+                          memcpy(*fileName, &package[index], numBytes);
+                  }
+                  else
+                          printf("Unrecognised file parameter, skipping\n");
+                  index += numBytes;
+  }
+  */
+  return 0;
 }
 
-int receivePacket(int fd, unsigned char **buffer, int seqNumber) {
+int receivePacket(unsigned char **buffer, int seqNumber) {
 
   unsigned char *information = NULL;
   int K = 0; // number of octets
 
-  if (llread(fd, information) < 0) {
+  if (llread(al.fd, information) < 0) {
 
     return -1;
   }

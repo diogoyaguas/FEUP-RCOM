@@ -7,7 +7,7 @@
 #include <string.h>
 #include <signal.h>
 #include <unistd.h>
-#include "linkLayer.h"
+#include "utils.h"
 
 #define CONTROLDATA  0x01
 #define CONTROLSTART 0x02 // control byte in control packet with value start
@@ -16,9 +16,9 @@
 #define CONTROLT2    0x01 // file's name
 
 struct applicationLayer {
-	int fileDescriptor; // file
-	int fd;	// serial port
-  int status;
+	int fileDescriptor;
+	int fd;
+  	int status;
 	char* filename;
 	unsigned char * file_data;
 	char controlPacket[];
@@ -26,10 +26,14 @@ struct applicationLayer {
 
 struct applicationLayer al;
 
-void sendControlPacket(unsigned char control_byte);
+int sendData(char *filename);
 
-int sendPacket(int fd, int seqNumber, char * buffer, int length);
+int receiveData(char *filename);
 
-void receiveControlPacket(int* file_length, char**filename);
+void sendControlPacket(char* filename, unsigned char control_byte);
 
-int receivePacket(int fd, unsigned char ** buffer, int seqNumber);
+int sendPacket(int seqNumber, char * buffer, int length);
+
+void receiveControlPacket();
+
+int receivePacket(unsigned char ** buffer, int seqNumber);
