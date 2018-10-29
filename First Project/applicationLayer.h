@@ -16,9 +16,9 @@
 #define CONTROLT2    0x01 // file's name
 
 struct applicationLayer {
-	int fileDescriptor;
-	int fd;
-  	int status;
+	int fileDescriptor; // file
+	int fd; // serial port
+  int status;
 	char* filename;
 	unsigned char * file_data;
 	char controlPacket[];
