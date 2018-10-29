@@ -501,7 +501,6 @@ int llread(int fd, unsigned char * buffer) {
     state = INIT;
 
     unsigned char byte, controlByte;
-    unsigned int sequenceNumber;
     int unreceived = TRUE;
 
     unsigned int length = 0;
@@ -538,15 +537,13 @@ int llread(int fd, unsigned char * buffer) {
             }
 
         case FA:
-            if (byte == CONTROL0) {
+            if (byte == CONTROL0 && ll.sequenceNumber == 0) {
               controlByte = CONTROL0;
-              sequenceNumber = 0;
               state = FAC;
               break;
             }
-            else if (byte == CONTROL1) {
+            else if (byte == CONTROL1 && ll.sequenceNumber == 1) {
               controlByte = CONTROL1;
-              sequenceNumber = 1;
               state = FAC;
               break;
             }
@@ -579,18 +576,17 @@ int llread(int fd, unsigned char * buffer) {
             destuffed = byteDestuffing(dbcc, &length);
             free(dbcc);
             if(!checkBCC(destuffed, length)) {
-              if(sequenceNumber == 0) {
+              if(ll.sequenceNumber == 0) {
                 setREJ0();
                 sendSFrame(fd, ll.REJ, FALSE);
                 return -1;
               }
-              else if(sequenceNumber == 1) {
+              else if(ll.sequenceNumber == 1) {
                 setREJ1();
                 sendSFrame(fd, ll.REJ, FALSE);
                 return -1;
               }
             }
-
             break;
           }
 
@@ -618,13 +614,15 @@ int llread(int fd, unsigned char * buffer) {
       buffer[i] = destuffed[i];
     }
 
-    if(sequenceNumber == 0) {
+    if(ll.sequenceNumber == 0) {
       setRR1();
       sendSFrame(fd, ll.RR, FALSE);
+      ll.sequenceNumber = 1;
     }
-    else if(sequenceNumber == 1) {
+    else if(ll.sequenceNumber == 1) {
       setRR0();
       sendSFrame(fd, ll.RR, FALSE);
+      ll.sequenceNumber = 0;
     }
 
     free(destuffed);

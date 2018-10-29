@@ -42,7 +42,6 @@ struct linkLayer {
 	unsigned char RR[5];
 	unsigned char REJ[5];
   size_t frameSLength;
-  size_t frameILength;
   volatile int retransmit;
 };
 

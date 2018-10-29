@@ -24,9 +24,11 @@ int main(int argc, char** argv)
     al.fd = llopen(argv[1], al.status);
 
     ll.timeout = 3;
-    ll.numRetransmissions = 3;
+    ll.maxRetransmissions = 3;
+    ll.numRetransmissions = ll.maxRetransmissions;
     ll.frameSLength = 5;
     ll.retransmit = FALSE;
+    ll.sequenceNumber = 0;
 
     if ((argc < 2) || ((strcmp("/dev/ttyS0", argv[1]) != 0) && (strcmp("/dev/ttyS1", argv[1]) != 0))) {
         printf("Usage:\tnserial SerialPort\n\tex: nserial /dev/ttyS1\n");
