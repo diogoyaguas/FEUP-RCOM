@@ -2,20 +2,18 @@
 
 int sendData(char *filename) {
 
-  if (sendControlPacket(al.fileDescriptor, filename, CONTROLSTART) < 0)
+  if (sendControlPacket(filename, CONTROLSTART) < 0)
     return -1;
 
   int bytesRead = 0, seqNumber = 0;
-  char *buffer;
+  unsigned char *buffer;
 
-  while ((bytesRead =
-              fread(buffer, sizeof(char), packetSize, al.fileDescriptor)) > 0) {
+  while ((bytesRead = fread(buffer, sizeof(char), packetSize, al.fileDescriptor)) > 0) {
 
     if (sendPacket(seqNumber, buffer, bytesRead) < 0)
       return -1;
 
     seqNumber++;
-    // TODO VERIFICAR O QUE É PRECISO FAZER COM O SEQNUMBER
   }
 
   if (fclose(al.fileDescriptor) < 0) {
@@ -23,7 +21,7 @@ int sendData(char *filename) {
     return -1;
   }
 
-  if (sendControlPacket(al.fileDescriptor, filename, CONTROLEND) < 0)
+  if (sendControlPacket(filename, CONTROLEND) < 0)
     return -1;
 
   return 0;
@@ -34,7 +32,29 @@ int receiveData(char *filename) {
   if (receiveControlPacket() < 0)
     return -1;
 
-	//TODO COMPLETAR ESTA PARTE: FALTA RECEBER O DATA PACKET, FECHAR O FICHEIRO E RECEBER O CONTROL PACKET COM CONTROLEND
+    int bytesRead = 0, seqNumber = 0, counter = 0;;
+  unsigned char *buffer;
+
+  while(counter < fileSize) {
+
+    bytesRead = receivePacket(&buffer, seqNumber);
+    if(bytesRead < 0)
+    return -1;
+
+          counter+= bytesRead;
+    fwrite(buffer, sizeof(char), bytesRead, al.fileDescriptor);
+    seqNumber++;
+    }
+
+     if (fclose(al.fileDescriptor) < 0) {
+    printf("Error closing the file.\n");
+    return -1;
+  }
+
+  if (receiveControlPacket() < 0)
+    return -1;
+
+  return 0;
 }
 
 int sendControlPacket(char *filename, unsigned char control_byte) {
