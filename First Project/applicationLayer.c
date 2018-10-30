@@ -121,33 +121,24 @@ int receiveControlPacket() {
     switch (pck_type) {
     case CONTROLT1:
       n_bytes = (unsigned int)read_package[pck_index++];
+<
+      al.file_data = (unsigned char*)malloc(n_bytes); /* Allocating file length not inicialized */
+      memcpy(al.file_data, &read_package[pck_index], n_bytes);                       /* Transfering block of memory to file_data */>
 
       break;
 
     case CONTROLT2:
       n_bytes = (unsigned int)read_package[pck_index++];
 
+      al.filename = (unsigned char*)malloc(n_bytes); /* Allocating filename memory block not inicialized */
+      memcpy(al.filename, &read_package[pck_index], n_bytes);                       /* Transfering block of memory to a.layer's filename */>
+
     default:
       printf("File parameter couldn't be recognised, moving ahead...");
     }
+      pck_index += numBytes;
   }
-  /*
-                  if(paramType == PARAM_FILE_SIZE){
-                          numBytes = (unsigned int) package[index++];
-                          char* length = (char*)malloc(numBytes);
-                          memcpy(length, &package[index], numBytes);
-                          *fileLength = atoi(length);
-                          free(length);
-                  }
-                  else if(paramType == PARAM_FILE_NAME){
-                          numBytes = (unsigned char) package[index++];
-                          memcpy(*fileName, &package[index], numBytes);
-                  }
-                  else
-                          printf("Unrecognised file parameter, skipping\n");
-                  index += numBytes;
-  }
-  */
+
   return 0;
 }
 

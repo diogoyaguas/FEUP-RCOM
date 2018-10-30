@@ -18,7 +18,7 @@
 struct applicationLayer {
 	int fileDescriptor; // file
 	int fd; // serial port
-  int status;
+  	int status;
 	char* filename;
 	unsigned char * file_data;
 	char controlPacket[];
