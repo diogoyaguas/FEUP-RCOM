@@ -25,6 +25,7 @@ int main(int argc, char** argv) {
 
 		al.status = TRANSMITTER;
 		al.fd = llopen(argv[1], al.status);
+    al.fragmentSize = 256;
 
 		ll.timeout = 3;
     ll.maxRetransmissions = 3;
@@ -65,9 +66,9 @@ int main(int argc, char** argv) {
 
 	//------------------------------------------------
 
-    //estabelecer conexao
+    //al do your thing
+    go();
 
-		establishConnection(al.fd, al.status);
 
     tcsetattr(al.fd, TCSANOW, &oldtio);
     close(al.fd);

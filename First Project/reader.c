@@ -22,6 +22,7 @@ int main(int argc, char** argv)
 
     al.status = RECEIVER;
     al.fd = llopen(argv[1], al.status);
+    al.fragmentSize = 256;
 
     ll.timeout = 3;
     ll.maxRetransmissions = 3;
@@ -70,9 +71,10 @@ int main(int argc, char** argv)
 
     printf("New termios structure set\n");
 
-    //estabelecer conexao
+    //------------------------------------------------------------------------------
 
-    establishConnection(al.fd, al.status);
+    //al do your thing
+    go();
 
     tcsetattr(al.fd, TCSANOW, &oldtio);
     close(al.fd);

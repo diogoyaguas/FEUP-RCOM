@@ -406,19 +406,19 @@ unsigned char * byteDestuffing(unsigned char * data, unsigned int * length){
 
     if(data[i] == ESCAPE) {
       if(data[i+1] == PATTERNFLAG) {
-        newData = realloc(newData, ++finalLength);
+        newData = (unsigned char *)realloc(newData, ++finalLength);
         newData[finalLength - 1] = FLAG;
         continue;
       }
       else if(data[i+1] == PATTERNESCAPE) {
-        newData = realloc(newData, ++finalLength);
+        newData = (unsigned char *)realloc(newData, ++finalLength);
         newData[finalLength-1] = ESCAPE;
         continue;
       }
     }
 
     else {
-      newData = realloc(newData, ++finalLength);
+      newData = (unsigned char *) realloc(newData, ++finalLength);
       newData[finalLength - 1] = data[i];
     }
 
@@ -487,9 +487,8 @@ int llwrite(int fd, unsigned char * buffer, unsigned int length) {
 Para ler tramas i
 retornar nr de caracteres lidos
 colocar no buffer caracteres lidos
-NOTA: buffer tem que ser alocado com malloc antes de chamar llread!!!
 */
-int llread(int fd, unsigned char * buffer) {
+int llread(int fd, unsigned char ** buffer) {
     enum states {
         INIT,
         F,
@@ -505,6 +504,7 @@ int llread(int fd, unsigned char * buffer) {
 
     unsigned int length = 0;
     unsigned char * dbcc = (unsigned char *) malloc(length);
+    *buffer = (unsigned char *) malloc(0);
     unsigned char * destuffed;
 
     while (unreceived) {
@@ -591,7 +591,7 @@ int llread(int fd, unsigned char * buffer) {
           }
 
           else {
-            dbcc = realloc(dbcc, ++length);
+            dbcc = (unsigned char *) realloc(dbcc, ++length);
             dbcc[length-1] = byte;
             break;
           }
@@ -607,11 +607,11 @@ int llread(int fd, unsigned char * buffer) {
 
         //copiar tudo exceto BCC2
 
-    buffer = realloc(buffer, --length);
+    *buffer = (unsigned char *) realloc(*buffer, --length);
 
     int i;
     for(i=0; i<length; i++) {
-      buffer[i] = destuffed[i];
+      *buffer[i] = destuffed[i];
     }
 
     if(ll.sequenceNumber == 0) {
@@ -673,57 +673,6 @@ int llclose(int fd, int status) {
       sendSFrame(fd, ll.DISC, TRUE);
       receiveSFrame(fd, TRANSMITTER, UA, ll.DISC, ll.frameSLength);
     }
-
-    /*
-
-    while (state != 5) {
-
-        if (read(fd, &c, 1) == -1) {
-
-            return -1;
-        }
-
-
-
-        if (c == FLAG&& state == 0)
-            state = 1;
-        else if (state == 1 && c == INPUTS_A)
-            state = 2;
-        else if (state = 2 && c == C_DISC)
-            state = 3;
-        else if (state = 3 && c == (INPUTS_A ^ C_DISC))
-            state = 4;
-        else if (state = 4 && c == FLAG)
-            state = 5;
-    }
-
-    if (write(fd, DISC, 5) != 5) {
-
-        return -1;
-    }
-
-    state = 0;
-
-        while (state != 5)
-    {
-
-        if (read(fd, &c, 1) == -1) {
-
-            return -1;
-        }
-
-        if (c == FLAG&& state == 0)
-            state = 1;
-        else if (state == 1 && c == INPUTS_A)
-            state = 2;
-        else if (state = 2 && c == C_SET)
-            state = 3;
-        else if (state = 3 && c == (INPUTS_A ^ C_SET))
-            state = 4;
-        else if (state = 4 && c == FLAG)
-            state = 5;
-    }
-    */
 
     return 0;
 }
