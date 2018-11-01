@@ -4,10 +4,16 @@ void go() {
   establishConnection(al.fd, al.status);
 
   if(al.status == TRANSMITTER) {
-    sendData();
+    //sendData();
+    if(sendControlPacket(CONTROLSTART) < 0){
+      printf("Error in sendControlPacket\n");
+    }
   }
   else if(al.status == RECEIVER) {
-    receiveData();
+    //receiveData();
+    if(receiveControlPacket() < 0) {
+      printf("Error in receiveControlPacket\n");
+    }
   }
 }
 
@@ -15,7 +21,13 @@ int setFile() {
   al.filename = malloc(30);
   printf("Name of the file to be transmitted: \n");
   scanf("%s", al.filename);
-  printf("You entered: %s", al.filename);
+
+  if(al.filename == NULL) {
+    printf("Filename is null\n");
+    return -1;
+  }
+
+  printf("You entered: %s \n", al.filename);
 
   if((al.fileDescriptor = open(al.filename, O_RDONLY)) < 0) {
     perror("Error opening the file");
@@ -120,12 +132,13 @@ int sendControlPacket(unsigned char control_byte) {
   if (control_byte == CONTROLSTART) {
     if(setFile() < 0) {
       printf("Error getting the file\n");
+      return -1;
     }
   }
 
   struct stat f_information;
 
-  if (fstat(al.fileDescriptor, &f_information) < 0) {
+  if (fstat(al.fileDescriptor, &f_information) <= 0) {
     perror("Couldn't obtain information regarding the file.");
     return -1;
   }
@@ -147,7 +160,7 @@ int sendControlPacket(unsigned char control_byte) {
 
   strcat((char *) startpackage + 5 + l1, al.filename);
 
-  if (llwrite(al.fd, startpackage, startpackage_len) <= 0) {
+  if (llwrite(al.fd, startpackage, startpackage_len) < 0) {
     printf("Couldn't write control package.\n");
    	return -1;
   }
@@ -180,20 +193,22 @@ int receiveControlPacket() {
   unsigned int package_size = llread(al.fd, &read_package);
 
   if (package_size < 0) {
-    perror("Couldn't read linklayer whilst receving package.");
+    perror("Couldn't read linklayer whilst receiving package.");
     return -1;
   }
 
   if (read_package[0] == CONTROLEND) {
     free(read_package);
-    return -1;
+    return 0;
   } /*End of transfer process, nothing to process any further.*/
 
   int pck_index = 1; // because we already know C ([0])
   unsigned int n_bytes;
 
-  for (int i = 0; i <= 1; i++) {
-    int pck_type = read_package[pck_index++]; // read T
+  int i;
+  unsigned char pck_type;
+  for (i = 0; i <= 1; i++) {
+    pck_type = read_package[pck_index++]; // read T
 
     switch (pck_type) {
     case CONTROLT1:
@@ -208,9 +223,11 @@ int receiveControlPacket() {
       al.filename = (char*)malloc(n_bytes); /* Allocating filename memory block not inicialized */
       memcpy(al.filename, &read_package[pck_index], n_bytes); /* Transfering block of memory to a.layer's filename */
       getFile(al.filename);
+      break;
 
     default:
-      printf("T parameter in start control packet couldn't be recognised, moving ahead...");
+      printf("T: %x \n", pck_type);
+      printf("T parameter in start control packet couldn't be recognised, moving ahead...\n");
     }
       pck_index += n_bytes;
   }
@@ -221,7 +238,7 @@ int receiveControlPacket() {
 
 int receivePacket(unsigned char ** buffer, int seqNumber) {
 
-  unsigned char *information = NULL;
+  unsigned char * information;
   int K = 0; // number of octets
 
   if (llread(al.fd, &information) < 0) {

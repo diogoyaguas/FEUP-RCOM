@@ -317,7 +317,7 @@ void receiveRRREJ(int fd, unsigned char rr, unsigned char rej, unsigned char * r
               alarm(0);
               ll.numRetransmissions = ll.maxRetransmissions;
               ll.retransmit = FALSE;
-              printf("Received frame\n");
+              printf("Received frame RR/REJ\n");
               break;
           }
           else {
@@ -358,6 +358,8 @@ int establishConnection(int fd, int status) {
         receiveSFrame(fd, TRANSMITTER, SETUP, NULL, 0);
         sendSFrame(fd, ll.UAck, FALSE);
     }
+
+    printf("Established connection. Moving on to packets\n");
 
     return 0;
 }
@@ -461,6 +463,7 @@ int llwrite(int fd, unsigned char * buffer, unsigned int length) {
 
   unsigned char * stuffedFrame = byteStuffing(IFrame, &totalLength);
   int res = write(fd, stuffedFrame, totalLength);
+  printf("llwrite: sent I frame\n");
   sleep(1);
 
   alarm(ll.timeout);
@@ -511,7 +514,7 @@ int llread(int fd, unsigned char ** buffer) {
         int res = read(fd, &byte, 1);
 
         if(res<0) {
-          perror("Receiving reading error");
+          perror("llread: receiving reading error");
         }
 
         switch (state) {
@@ -574,17 +577,15 @@ int llread(int fd, unsigned char ** buffer) {
           if(byte == FLAG) {
             state = FACBCCDBCCF;
             destuffed = byteDestuffing(dbcc, &length);
-            free(dbcc);
             if(!checkBCC(destuffed, length)) {
+              printf("llread sending REJ\n");
               if(ll.sequenceNumber == 0) {
                 setREJ0();
                 sendSFrame(fd, ll.REJ, FALSE);
-                return -1;
               }
               else if(ll.sequenceNumber == 1) {
                 setREJ1();
                 sendSFrame(fd, ll.REJ, FALSE);
-                return -1;
               }
             }
             break;
@@ -611,9 +612,10 @@ int llread(int fd, unsigned char ** buffer) {
 
     int i;
     for(i=0; i<length; i++) {
-      *buffer[i] = destuffed[i];
+      (*buffer)[i] = destuffed[i];
     }
 
+    printf("llread sending RR\n");
     if(ll.sequenceNumber == 0) {
       setRR1();
       sendSFrame(fd, ll.RR, FALSE);
@@ -625,6 +627,7 @@ int llread(int fd, unsigned char ** buffer) {
       ll.sequenceNumber = 0;
     }
 
+    free(dbcc);
     free(destuffed);
     return length;
 }
