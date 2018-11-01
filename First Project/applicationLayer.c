@@ -142,7 +142,7 @@ int sendControlPacket(unsigned char control_byte) {
 
   off_t f_size = f_information.st_size; /* total size in bytes, in signed integer */
   unsigned int l1 = sizeof(f_size);
-  unsigned int l2 = strlen(al.filename);
+  unsigned int l2 = strlen(al.filename) + 1;
 
   int startpackage_len = 5 + l1 + l2;
 
@@ -188,6 +188,7 @@ int sendPacket(int seqNumber, unsigned char * buffer, int length) {
 int receiveControlPacket() {
   unsigned char * read_package;
   unsigned int package_size = llread(al.fd, &read_package);
+  int i;
 
   if (package_size < 0) {
     perror("Couldn't read linklayer whilst receiving package.");
@@ -205,7 +206,6 @@ int receiveControlPacket() {
   pck_index++; //move on to T1
   unsigned int n_bytes;
 
-  int i;
   unsigned char pck_type; //T
   for (i = 0; i < 2; i++) {
     pck_type = read_package[pck_index++]; // read T, update to L
@@ -221,8 +221,8 @@ int receiveControlPacket() {
 
     case CONTROLT2:
       n_bytes = (unsigned int) read_package[pck_index++]; // read L2, update to V2
-      al.filename = (char*) malloc(n_bytes + 1); /* Allocating filename memory block not inicialized */
-      memcpy(al.filename, &read_package[pck_index], n_bytes + 1); /* Transfering block of memory to a.layer's filename */
+      al.filename = (char *) malloc(n_bytes + 1); /* Allocating filename memory block not inicialized */
+      memcpy(al.filename, (char *)&read_package[pck_index+1], n_bytes + 1); /* Transfering block of memory to a.layer's filename */
       getFile();
       break;
 
