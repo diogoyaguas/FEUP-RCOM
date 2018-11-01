@@ -12,6 +12,7 @@ void go() {
 }
 
 int setFile() {
+  al.filename = malloc(30);
   printf("Name of the file to be transmitted: \n");
   scanf("%s", al.filename);
   printf("You entered: %s", al.filename);
@@ -66,6 +67,7 @@ int sendData() {
     return -1;
   }
 
+  free(al.filename);
   free(buffer);
   llclose(al.fd, al.status);
   printf("Finished\n");
