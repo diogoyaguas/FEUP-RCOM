@@ -279,6 +279,7 @@ void receiveRRREJ(int fd, unsigned char rr, unsigned char rej, unsigned char * r
           if (byte == rr) {
             controlByte = rr;
             receiveState = FAC;
+            alarm(0);
             break;
           }
           else if(byte == rej) {
@@ -372,7 +373,7 @@ unsigned char * byteStuffing(unsigned char * frame, unsigned int * length) {
   stuffedFrame[j++] = FLAG;
 
   //excluir FLAG inicial e final
-  for(i = 1; i < *length - 2; i++) {
+  for(i = 1; i < *length - 1; i++) {
     if(frame[i] == FLAG) {
       stuffedFrame = (unsigned char *) realloc(stuffedFrame, ++finalLength);
       stuffedFrame[j] = ESCAPE;
@@ -458,8 +459,8 @@ int llwrite(int fd, unsigned char * buffer, unsigned int length) {
     BCC2 = BCC2 ^ IFrame[i];
   }
 
-  IFrame[length-2] = BCC2;
-  IFrame[length-1] = FLAG;
+  IFrame[totalLength-2] = BCC2;
+  IFrame[totalLength-1] = FLAG;
 
   unsigned char * stuffedFrame = byteStuffing(IFrame, &totalLength);
   int res = write(fd, stuffedFrame, totalLength);
@@ -501,6 +502,8 @@ int llread(int fd, unsigned char ** buffer) {
         FACBCCDBCCF
     } state;
     state = INIT;
+
+    int i;
 
     unsigned char byte, controlByte;
     int unreceived = TRUE;
@@ -575,8 +578,18 @@ int llread(int fd, unsigned char ** buffer) {
 
         case FACBCCD:
           if(byte == FLAG) {
-            state = FACBCCDBCCF;
+            for(i=0; i<length; i++){
+              printf("%x \n", dbcc[i]);
+            }
+
             destuffed = byteDestuffing(dbcc, &length);
+
+            printf("After destuffing\n");
+
+            for(i=0; i<length; i++){
+              printf("%x \n", destuffed[i]);
+            }
+
             if(!checkBCC(destuffed, length)) {
               printf("llread sending REJ\n");
               if(ll.sequenceNumber == 0) {
@@ -587,6 +600,9 @@ int llread(int fd, unsigned char ** buffer) {
                 setREJ1();
                 sendSFrame(fd, ll.REJ, FALSE);
               }
+            }
+            else {
+              state = FACBCCDBCCF;
             }
             break;
           }
@@ -610,7 +626,6 @@ int llread(int fd, unsigned char ** buffer) {
 
     *buffer = (unsigned char *) realloc(*buffer, --length);
 
-    int i;
     for(i=0; i<length; i++) {
       (*buffer)[i] = destuffed[i];
     }
@@ -626,6 +641,8 @@ int llread(int fd, unsigned char ** buffer) {
       sendSFrame(fd, ll.RR, FALSE);
       ll.sequenceNumber = 0;
     }
+
+    printf("-----------------------------------\n");
 
     free(dbcc);
     free(destuffed);

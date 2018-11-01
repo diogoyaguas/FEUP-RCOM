@@ -4,10 +4,14 @@ void go() {
   establishConnection(al.fd, al.status);
 
   if(al.status == TRANSMITTER) {
-    sendData();
+    //sendData();
+    sendControlPacket(CONTROLSTART);
+    sendControlPacket(CONTROLEND);
   }
   else if(al.status == RECEIVER) {
-    receiveData();
+    //receiveData();
+    receiveControlPacket();
+    receiveControlPacket();
   }
 }
 
@@ -31,8 +35,9 @@ int setFile() {
   return 0;
 }
 
-int getFile(char * filename) {
-  if((al.fileDescriptor = open(al.filename, O_CREAT|O_APPEND, S_IWUSR)) < 0) {
+int getFile() {
+  printf("Filename: %s\n", al.filename);
+  if((al.fileDescriptor = open(al.filename, O_CREAT|O_APPEND, S_IWUSR|S_IRUSR)) < 0) {
     perror("Error opening the file");
     return -1;
   }
@@ -214,7 +219,7 @@ int receiveControlPacket() {
       n_bytes = (unsigned int)read_package[pck_index++];
       al.filename = (char*)malloc(n_bytes); /* Allocating filename memory block not inicialized */
       memcpy(al.filename, &read_package[pck_index], n_bytes); /* Transfering block of memory to a.layer's filename */
-      getFile(al.filename);
+      getFile();
       break;
 
     default:

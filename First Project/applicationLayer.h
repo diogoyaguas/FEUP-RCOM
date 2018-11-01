@@ -33,7 +33,7 @@ void go();
 
 int setFile();
 
-int getFile(char * filename);
+int getFile();
 
 int sendData();
 
