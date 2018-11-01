@@ -194,31 +194,35 @@ int receiveControlPacket() {
     return -1;
   }
 
-  if (read_package[0] == CONTROLEND) {
+  int pck_index = 0;
+
+  if (read_package[pck_index] == CONTROLEND) {
     free(read_package);
+    printf("Ending...\n");
     return 0;
   } /*End of transfer process, nothing to process any further.*/
 
-  int pck_index = 1; // because we already know C ([0])
+  pck_index++; //move on to T1
   unsigned int n_bytes;
 
   int i;
-  unsigned char pck_type;
-  for (i = 0; i <= 1; i++) {
-    pck_type = read_package[pck_index++]; // read T
+  unsigned char pck_type; //T
+  for (i = 0; i < 2; i++) {
+    pck_type = read_package[pck_index++]; // read T, update to L
 
     switch (pck_type) {
     case CONTROLT1:
-      n_bytes = (unsigned int)read_package[pck_index++];
-      al.file_data = (unsigned char*)malloc(n_bytes); /* Allocating file length not inicialized */
-      al.fileSize = n_bytes;
-      memcpy(al.file_data, &read_package[pck_index], n_bytes); /* Transfering block of memory to file_data */
+      n_bytes = (unsigned int) read_package[pck_index++]; // read L1, update to V1
+
+      al.fileSize = *((off_t *)(read_package + pck_index));
+      al.file_data = (unsigned char *) malloc(al.fileSize); /* Allocating file length not inicialized */
+      pck_index += n_bytes; //update to T2
       break;
 
     case CONTROLT2:
-      n_bytes = (unsigned int)read_package[pck_index++];
-      al.filename = (char*)malloc(n_bytes); /* Allocating filename memory block not inicialized */
-      memcpy(al.filename, &read_package[pck_index], n_bytes); /* Transfering block of memory to a.layer's filename */
+      n_bytes = (unsigned int) read_package[pck_index++]; // read L2, update to V2
+      al.filename = (char*) malloc(n_bytes + 1); /* Allocating filename memory block not inicialized */
+      memcpy(al.filename, &read_package[pck_index], n_bytes + 1); /* Transfering block of memory to a.layer's filename */
       getFile();
       break;
 
@@ -226,7 +230,6 @@ int receiveControlPacket() {
       printf("T: %x \n", pck_type);
       printf("T parameter in start control packet couldn't be recognised, moving ahead...\n");
     }
-      pck_index += n_bytes;
   }
 
   free(read_package);
