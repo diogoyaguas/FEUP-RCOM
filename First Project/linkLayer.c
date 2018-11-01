@@ -318,7 +318,12 @@ void receiveRRREJ(int fd, unsigned char rr, unsigned char rej, unsigned char * r
               alarm(0);
               ll.numRetransmissions = ll.maxRetransmissions;
               ll.retransmit = FALSE;
-              printf("Received frame RR/REJ\n");
+              if(controlByte == rr) {
+                printf("Received RR frame\n");
+              }
+              else if(controlByte == rej) {
+                printf("Received REJ frame\n");
+              }
               break;
           }
           else {
@@ -578,17 +583,21 @@ int llread(int fd, unsigned char ** buffer) {
 
         case FACBCCD:
           if(byte == FLAG) {
+            /*
             for(i=0; i<length; i++){
               printf("%x \n", dbcc[i]);
             }
+            */
 
             destuffed = byteDestuffing(dbcc, &length);
 
+            /*
             printf("After destuffing\n");
 
             for(i=0; i<length; i++){
               printf("%x \n", destuffed[i]);
             }
+            */
 
             if(!checkBCC(destuffed, length)) {
               printf("llread sending REJ\n");
@@ -642,7 +651,7 @@ int llread(int fd, unsigned char ** buffer) {
       ll.sequenceNumber = 0;
     }
 
-    printf("-----------------------------------\n");
+    //printf("-----------------------------------\n");
 
     free(dbcc);
     free(destuffed);
