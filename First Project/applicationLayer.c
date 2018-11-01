@@ -4,16 +4,10 @@ void go() {
   establishConnection(al.fd, al.status);
 
   if(al.status == TRANSMITTER) {
-    //sendData();
-    if(sendControlPacket(CONTROLSTART) < 0){
-      printf("Error in sendControlPacket\n");
-    }
+    sendData();
   }
   else if(al.status == RECEIVER) {
-    //receiveData();
-    if(receiveControlPacket() < 0) {
-      printf("Error in receiveControlPacket\n");
-    }
+    receiveData();
   }
 }
 
@@ -38,7 +32,7 @@ int setFile() {
 }
 
 int getFile(char * filename) {
-  if((al.fileDescriptor = open(al.filename, O_CREAT|O_APPEND)) < 0) {
+  if((al.fileDescriptor = open(al.filename, O_CREAT|O_APPEND, S_IWUSR)) < 0) {
     perror("Error opening the file");
     return -1;
   }
@@ -68,14 +62,13 @@ int sendData() {
     seqNumber %= 255;
   }
 
-  if (close(al.fileDescriptor) < 0) {
-    printf("Error closing the file.\n");
-    free(buffer);
+  if (sendControlPacket(CONTROLEND) < 0) {
+    printf("Error in sendControlPacket\n");
     return -1;
   }
 
-  if (sendControlPacket(CONTROLEND) < 0) {
-    printf("Error in sendControlPacket\n");
+    if (close(al.fileDescriptor) < 0) {
+    printf("Error closing the file.\n");
     return -1;
   }
 
@@ -100,8 +93,7 @@ int receiveData() {
 
     bytesRead = receivePacket(&buffer, seqNumber);
     if(bytesRead < 0) {
-      printf("Error in receivePacket\n");
-      return -1;
+      continue;
     }
 
     counter+= bytesRead;
@@ -110,13 +102,13 @@ int receiveData() {
     free(buffer);
     }
 
-  if (close(al.fileDescriptor) < 0) {
-    printf("Error closing the file.\n");
+  if (receiveControlPacket() < 0) {
+    printf("Error in receiveControlPacket\n");
     return -1;
   }
 
-  if (receiveControlPacket() < 0) {
-    printf("Error in receiveControlPacket\n");
+    if (close(al.fileDescriptor) < 0) {
+    printf("Error closing the file.\n");
     return -1;
   }
 
@@ -138,8 +130,8 @@ int sendControlPacket(unsigned char control_byte) {
 
   struct stat f_information;
 
-  if (fstat(al.fileDescriptor, &f_information) <= 0) {
-    perror("Couldn't obtain information regarding the file.");
+  if (fstat(al.fileDescriptor, &f_information) < 0) {
+    perror("Couldn't obtain information regarding the file");
     return -1;
   }
 
