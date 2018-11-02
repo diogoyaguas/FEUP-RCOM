@@ -479,8 +479,6 @@ int llwrite(int fd, unsigned char * buffer, unsigned int length) {
   }
   printf("-----------------------------------\n");
 
-  sleep(1);
-
   alarm(ll.timeout);
 
   if(ll.sequenceNumber == 0) {
