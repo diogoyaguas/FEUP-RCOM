@@ -4,14 +4,10 @@ void go() {
   establishConnection(al.fd, al.status);
 
   if(al.status == TRANSMITTER) {
-    //sendData();
-    sendControlPacket(CONTROLSTART);
-    sendControlPacket(CONTROLEND);
+    sendData();
   }
   else if(al.status == RECEIVER) {
-    //receiveData();
-    receiveControlPacket();
-    receiveControlPacket();
+    receiveData();
   }
 }
 
@@ -37,7 +33,7 @@ int setFile() {
 
 int getFile() {
   printf("Filename: %s\n", al.filename);
-  if((al.fileDescriptor = open(al.filename, O_CREAT|O_APPEND, S_IWUSR|S_IRUSR)) < 0) {
+  if((al.fileDescriptor = open(al.filename, O_CREAT|O_WRONLY|O_APPEND, S_IWUSR|S_IRUSR)) < 0) {
     perror("Error opening the file");
     return -1;
   }
@@ -91,7 +87,7 @@ int receiveData() {
     return -1;
   }
 
-  int bytesRead = 0, seqNumber = 0, counter = 0;;
+  int bytesRead = 0, seqNumber = 0, counter = 0, i;
   unsigned char * buffer;
 
   while(counter < al.fileSize) {
@@ -103,7 +99,16 @@ int receiveData() {
     }
 
     counter+= bytesRead;
-    write(al.fileDescriptor, buffer, bytesRead);
+    if(write(al.fileDescriptor, buffer, bytesRead) <= 0) {
+      perror("Couldn't write to file");
+    }
+
+    printf("buffer: \n");
+    for(i=0; i<bytesRead; i++) {
+      printf("%d:  %c\n", i, buffer[i]);
+    }
+    printf("______________________\n");
+
     seqNumber++;
     free(buffer);
     }
@@ -247,17 +252,21 @@ int receivePacket(unsigned char ** buffer, int seqNumber) {
     return -1;
   }
 
-  if (information == NULL)
+  if (information == NULL) {
+    printf("receivePacket: information = NULL\n");
     return -1;
+  }
 
-  int C = information[0] - '0'; // control field
+  unsigned char C = information[0]; // control field
   int N = information[1] - '0'; // sequence number
 
   if (C != CONTROLDATA) {
+    printf("receivePacket: C doesn't indicate data\n");
     return -1;
   }
 
   if (N != seqNumber) {
+    printf("receivePacket: wrong sequence number\n");
     return -1;
   }
 

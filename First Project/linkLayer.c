@@ -677,8 +677,10 @@ int checkBCC(unsigned char * data, int length) {
     if (BCC2 == data[length - 1]) {
         return TRUE;
     }
-    else
+    else {
+        printf("BCC2 doesn't check\nBCC2: %x, real BCC2: %x\n", data[length-1], BCC2);
         return FALSE;
+    }
 }
 
 void sendControlMessage(int fd, unsigned char c) {
