@@ -467,9 +467,19 @@ int llwrite(int fd, unsigned char * buffer, unsigned int length) {
   IFrame[totalLength-2] = BCC2;
   IFrame[totalLength-1] = FLAG;
 
+  for(i=0; i<totalLength; i++) {
+    printf("%d:  %x\n", i, IFrame[i]);
+  }
+
   unsigned char * stuffedFrame = byteStuffing(IFrame, &totalLength);
   int res = write(fd, stuffedFrame, totalLength);
   printf("llwrite: sent I frame\n");
+
+  for(i=0; i<totalLength; i++) {
+    printf("%d:  %x\n", i, stuffedFrame[i]);
+  }
+  printf("-----------------------------------\n");
+
   sleep(1);
 
   alarm(ll.timeout);
@@ -583,21 +593,18 @@ int llread(int fd, unsigned char ** buffer) {
 
         case FACBCCD:
           if(byte == FLAG) {
-            /*
+
             for(i=0; i<length; i++){
               printf("%x \n", dbcc[i]);
             }
-            */
 
             destuffed = byteDestuffing(dbcc, &length);
 
-            /*
             printf("After destuffing\n");
 
             for(i=0; i<length; i++){
               printf("%x \n", destuffed[i]);
             }
-            */
 
             if(!checkBCC(destuffed, length)) {
               printf("llread sending REJ\n");
@@ -651,7 +658,7 @@ int llread(int fd, unsigned char ** buffer) {
       ll.sequenceNumber = 0;
     }
 
-    //printf("-----------------------------------\n");
+    printf("-----------------------------------\n");
 
     free(dbcc);
     free(destuffed);

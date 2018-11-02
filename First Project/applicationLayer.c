@@ -98,6 +98,7 @@ int receiveData() {
 
     bytesRead = receivePacket(&buffer, seqNumber);
     if(bytesRead < 0) {
+      printf("receivePacket didn't read \n");
       continue;
     }
 
@@ -253,12 +254,10 @@ int receivePacket(unsigned char ** buffer, int seqNumber) {
   int N = information[1] - '0'; // sequence number
 
   if (C != CONTROLDATA) {
-
     return -1;
   }
 
   if (N != seqNumber) {
-
     return -1;
   }
 
@@ -267,7 +266,7 @@ int receivePacket(unsigned char ** buffer, int seqNumber) {
   K = 256 * L2 + L1;
 
   *buffer = (unsigned char *) malloc(K);
-  memcpy((*buffer), &information[4], K);
+  memcpy((*buffer), (information + 4), K);
 
   free(information);
 
