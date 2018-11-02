@@ -457,8 +457,7 @@ int llwrite(int fd, unsigned char * buffer, unsigned int length) {
 
   int i;
   IFrame[4] = buffer[0];
-  IFrame[5] = buffer[1];
-  BCC2 = IFrame[4] ^ IFrame[5];
+  BCC2 = IFrame[4];
   for(i = 5; i < length + 4; i++) {
     IFrame[i] = buffer[i-4];
     BCC2 = BCC2 ^ IFrame[i];
