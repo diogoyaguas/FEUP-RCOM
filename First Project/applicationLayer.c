@@ -87,7 +87,7 @@ int receiveData() {
     return -1;
   }
 
-  int bytesRead = 0, seqNumber = 0, counter = 0, i;
+  int bytesRead = 0, seqNumber = 0, counter = 0;
   unsigned char * buffer;
 
   while(counter < al.fileSize) {
@@ -102,12 +102,6 @@ int receiveData() {
     if(write(al.fileDescriptor, buffer, bytesRead) <= 0) {
       perror("Couldn't write to file");
     }
-
-    printf("buffer: \n");
-    for(i=0; i<bytesRead; i++) {
-      printf("%d:  %c\n", i, buffer[i]);
-    }
-    printf("______________________\n");
 
     seqNumber++;
     free(buffer);
