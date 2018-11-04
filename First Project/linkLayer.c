@@ -115,8 +115,7 @@ void receiveSFrame(int fd, int senderStatus, unsigned char controlByte,
     res = read(fd, &byte, 1);
     if (res < 0) {
       perror("Receiving reading error");
-    } else if (res > 0) {
-
+    }
       switch (receiveState) {
       case INIT:
         if (byte == FLAG)
@@ -174,7 +173,6 @@ void receiveSFrame(int fd, int senderStatus, unsigned char controlByte,
       default:
         break;
       }
-    }
   }
 }
 
@@ -207,7 +205,12 @@ void receiveRRREJ(int fd, unsigned char rr, unsigned char rej,
     res = read(fd, &byte, 1);
     if (res < 0) {
       perror("Receiving reading error");
-    } else if (res > 0) {
+    } else if (res == 0) {
+        res = write(fd, retransmit, retransmitSize);
+    	res = read(fd, &byte, 1);
+	}
+
+	//printf("%x ", byte);
 
       switch (receiveState) {
       case INIT:
@@ -267,7 +270,6 @@ void receiveRRREJ(int fd, unsigned char rr, unsigned char rej,
       default:
         break;
       }
-    }
   }
 }
 
@@ -453,10 +455,9 @@ int llread(int fd, unsigned char **buffer) {
       case F:
         if (byte == TRANSMITTERSA) {
           state = FA;
-        } else if (byte == FLAG) {
+        } else if (byte == FLAG) 
           state = F;
-        } else
-          state = INIT;
+         else state = INIT;
         break;
       case FA:
         if (byte == CONTROL0 && ll.sequenceNumber == 0) {
@@ -465,18 +466,16 @@ int llread(int fd, unsigned char **buffer) {
         } else if (byte == CONTROL1 && ll.sequenceNumber == 1) {
           controlByte = CONTROL1;
           state = FAC;
-        } else if (byte == FLAG) {
+        } else if (byte == FLAG)
           state = F;
-        } else
-          state = INIT;
+         else state = INIT;
         break;
       case FAC:
         if (byte == (TRANSMITTERSA ^ controlByte)) {
           state = FACBCCD;
-        } else if (byte == FLAG) {
+        } else if (byte == FLAG)
           state = F;
-        } else
-          state = INIT;
+         else state = INIT;
         break;
 
       case FACBCCD:

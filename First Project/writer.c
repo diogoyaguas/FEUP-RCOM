@@ -25,14 +25,14 @@ int main(int argc, char** argv) {
 
 		al.status = TRANSMITTER;
 		al.fd = llopen(argv[1], al.status);
-    al.fragmentSize = 256;
+    	al.fragmentSize = 256;
 
 		ll.timeout = 3;
-    ll.maxRetransmissions = 3;
+    	ll.maxRetransmissions = 3;
 		ll.numRetransmissions = ll.maxRetransmissions;
 		ll.frameSLength = 5;
 		ll.retransmit = FALSE;
-    ll.sequenceNumber = 0;
+    	ll.sequenceNumber = 0;
 
     if ( tcgetattr(al.fd,&oldtio) == -1) { /* save current port settings */
       perror("tcgetattr");
@@ -47,7 +47,7 @@ int main(int argc, char** argv) {
     /* set input mode (non-canonical, no echo,...) */
     newtio.c_lflag = 0;
 
-    newtio.c_cc[VTIME]    = 10;   /* inter-character timer unused */
+    newtio.c_cc[VTIME]    = 1;   /* inter-character timer unused */
     newtio.c_cc[VMIN]     = 0;   /* blocking read until 1 char received */
 
   /*
