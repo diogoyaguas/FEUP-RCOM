@@ -41,8 +41,8 @@ struct linkLayer {
 	unsigned char DISC[5];
 	unsigned char RR[5];
 	unsigned char REJ[5];
-  size_t frameSLength;
-  volatile int retransmit;
+  	size_t frameSLength;
+  	volatile int retransmit;
 };
 
 struct linkLayer ll;

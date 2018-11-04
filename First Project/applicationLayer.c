@@ -13,15 +13,13 @@ void go() {
 
 int setFile() {
   al.filename = malloc(30);
-  printf("Name of the file to be transmitted: \n");
+  printf("Name of the file to be transmitted: ");
   scanf("%s", al.filename);
 
   if(al.filename == NULL) {
     printf("Filename is null\n");
     return -1;
   }
-
-  printf("You entered: %s \n", al.filename);
 
   if((al.fileDescriptor = open(al.filename, O_RDONLY)) < 0) {
     perror("Error opening the file");
@@ -171,7 +169,7 @@ int sendPacket(int seqNumber, unsigned char * buffer, int length) {
   unsigned char dataPacket[totalLength];
 
   dataPacket[0] = CONTROLDATA;
-  dataPacket[1] = seqNumber + '0';
+  dataPacket[1] = seqNumber;
   dataPacket[2] = length / 256;
   dataPacket[3] = length % 256;
 
@@ -199,7 +197,7 @@ int receiveControlPacket() {
 
   if (read_package[pck_index] == CONTROLEND) {
     free(read_package);
-    printf("Ending...\n");
+    printf("\nEnding...\n");
     return 0;
   } /*End of transfer process, nothing to process any further.*/
 
@@ -252,7 +250,7 @@ int receivePacket(unsigned char ** buffer, int seqNumber) {
   }
 
   unsigned char C = information[0]; // control field
-  int N = information[1] - '0'; // sequence number
+  int N = information[1]; // sequence number
 
   if (C != CONTROLDATA) {
     printf("receivePacket: C doesn't indicate data\n");

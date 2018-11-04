@@ -11,7 +11,7 @@
 #include <unistd.h>
 #include "applicationLayer.h"
 
-#define BAUDRATE B38400
+#define BAUDRATE B460800
 #define MODEMDEVICE "/dev/ttyS1"
 #define _POSIX_SOURCE 1 /* POSIX compliant source */
 
@@ -62,7 +62,9 @@ int main(int argc, char** argv) {
       exit(-1);
     }
 
-    printf("New termios structure set\n Establishing conection\n");
+	system("clear"); //*nix
+
+    printf("<< New termios structure set >>\nEstablishing conection");
 
 	//------------------------------------------------
 

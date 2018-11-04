@@ -87,9 +87,7 @@ void sendSFrame(int fd, unsigned char * frame, int triggerAlarm) {
         exit(-1);
     }
 
-    printf("Frame sent (bytes: %d)\n", res);
-
-    sleep(1);
+    printf("\n\nFrame sent (bytes: %d)\n", res);
 
     if(triggerAlarm) {
       alarm(ll.timeout);
@@ -115,11 +113,11 @@ void receiveSFrame(int fd, int senderStatus, unsigned char controlByte, unsigned
     if(retransmit != NULL) {
       if(ll.retransmit) {
         if (ll.numRetransmissions == 0) {
-            printf("No more retransmissions, leaving.\n");
+            printf("\nNo more retransmissions, leaving...\n");
             exit(-1);
         }
         res = write(fd, retransmit, retransmitSize);
-        printf("Frame sent again (bytes: %d)\n", res);
+        printf("\nFrame sent again (bytes: %d)\n", res);
         ll.numRetransmissions--;
         alarm(ll.timeout);
         ll.retransmit = FALSE;
@@ -243,7 +241,7 @@ void receiveRRREJ(int fd, unsigned char rr, unsigned char rej, unsigned char * r
             exit(-1);
         }
         res = write(fd, retransmit, retransmitSize);
-        printf("Frame sent again (bytes: %d)\n", res);
+        printf("\nFrame sent again (bytes: %d)\n", res);
         ll.numRetransmissions--;
         alarm(ll.timeout);
         ll.retransmit = FALSE;
@@ -365,7 +363,7 @@ int establishConnection(int fd, int status) {
         sendSFrame(fd, ll.UAck, FALSE);
     }
 
-    printf("Established connection. Moving on to packets\n");
+    printf("\nEstablished connection. Moving on to packets\n\n");
 
     return 0;
 }
@@ -416,11 +414,13 @@ unsigned char * byteDestuffing(unsigned char * data, unsigned int * length){
       if(data[i+1] == PATTERNFLAG) {
         newData = (unsigned char *)realloc(newData, ++finalLength);
         newData[finalLength - 1] = FLAG;
+		i++;
         continue;
       }
       else if(data[i+1] == PATTERNESCAPE) {
         newData = (unsigned char *)realloc(newData, ++finalLength);
         newData[finalLength-1] = ESCAPE;
+		i++;
         continue;
       }
     }
@@ -466,18 +466,9 @@ int llwrite(int fd, unsigned char * buffer, unsigned int length) {
   IFrame[totalLength-2] = BCC2;
   IFrame[totalLength-1] = FLAG;
 
-  for(i=0; i<totalLength; i++) {
-    printf("%d:  %x\n", i, IFrame[i]);
-  }
-
   unsigned char * stuffedFrame = byteStuffing(IFrame, &totalLength);
   int res = write(fd, stuffedFrame, totalLength);
-  printf("llwrite: sent I frame\n");
-
-  for(i=0; i<totalLength; i++) {
-    printf("%d:  %x\n", i, stuffedFrame[i]);
-  }
-  printf("-----------------------------------\n");
+  printf("\nllwrite: sent I frame\n");
 
   alarm(ll.timeout);
 
@@ -591,20 +582,10 @@ int llread(int fd, unsigned char ** buffer) {
         case FACBCCD:
           if(byte == FLAG) {
 
-            for(i=0; i<length; i++){
-              printf("%x \n", dbcc[i]);
-            }
-
             destuffed = byteDestuffing(dbcc, &length);
 
-            printf("After destuffing\n");
-
-            for(i=0; i<length; i++){
-              printf("%x \n", destuffed[i]);
-            }
-
             if(!checkBCC(destuffed, length)) {
-              printf("llread sending REJ\n");
+              printf("llread: sending REJ\n");
               if(ll.sequenceNumber == 0) {
                 setREJ0();
                 sendSFrame(fd, ll.REJ, FALSE);
@@ -643,7 +624,7 @@ int llread(int fd, unsigned char ** buffer) {
       (*buffer)[i] = destuffed[i];
     }
 
-    printf("llread sending RR\n");
+    printf("llread: sending RR\n");
     if(ll.sequenceNumber == 0) {
       setRR1();
       sendSFrame(fd, ll.RR, FALSE);
@@ -654,8 +635,6 @@ int llread(int fd, unsigned char ** buffer) {
       sendSFrame(fd, ll.RR, FALSE);
       ll.sequenceNumber = 0;
     }
-
-    printf("-----------------------------------\n");
 
     free(dbcc);
     free(destuffed);
