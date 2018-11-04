@@ -80,7 +80,7 @@ void sendSFrame(int fd, unsigned char *frame, int triggerAlarm) {
     exit(-1);
   }
 
-  printf("\n\nFrame sent (bytes: %d)\n", res);
+  printf("\nFrame sent (bytes: %d)\n", res);
 
   if (triggerAlarm) {
     alarm(ll.timeout);
