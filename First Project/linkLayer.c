@@ -455,7 +455,7 @@ int llread(int fd, unsigned char **buffer) {
       case F:
         if (byte == TRANSMITTERSA) {
           state = FA;
-        } else if (byte == FLAG) 
+        } else if (byte == FLAG)
           state = F;
          else state = INIT;
         break;
@@ -492,8 +492,13 @@ int llread(int fd, unsigned char **buffer) {
               setREJ1();
               sendSFrame(fd, ll.REJ, FALSE);
             }
+            length = 0;
+            dbcc = (unsigned char *) realloc(dbcc, length);
+            state = INIT;
+            break;
           } else {
             state = FACBCCDBCCF;
+            break;
           }
         } else {
           dbcc = (unsigned char *)realloc(dbcc, ++length);
