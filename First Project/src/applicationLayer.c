@@ -30,7 +30,6 @@ int setFile() {
 }
 
 int getFile() {
-  printf("Filename: %s\n", al.filename);
   if((al.fileDescriptor = open(al.filename, O_CREAT|O_WRONLY|O_APPEND, S_IWUSR|S_IRUSR)) < 0) {
     perror("Error opening the file");
     return -1;
@@ -74,7 +73,8 @@ int sendData() {
   free(al.filename);
   free(buffer);
   llclose(al.fd, al.status);
-  printf("Finished\n");
+  system("clear"); //*nix
+  printf("<<< Finished >>>\n");
   return 0;
 }
 
@@ -118,7 +118,8 @@ int receiveData() {
   free(al.filename);
   free(al.file_data);
   llclose(al.fd, al.status);
-  printf("Finished\n");
+  system("clear"); //*nix
+  printf("<<< Finished >>>\n");
   return 0;
 }
 

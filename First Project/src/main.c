@@ -68,10 +68,12 @@ int main(int argc, char **argv) {
     exit(-1);
   }
 
+  system("clear"); //*nix
+
   if (al.status == RECEIVER) {
-    printf("New termios structure set\n");
+    printf("<<< New termios structure set >>>\n");
   } else
-    printf("<< New termios structure set >>\nEstablishing conection");
+    printf("<<< New termios structure set >>>\n\nEstablishing conection...\n");
 
   //------------------------------------------------
 
