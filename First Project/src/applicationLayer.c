@@ -197,7 +197,6 @@ int receiveControlPacket() {
 
   if (read_package[pck_index] == CONTROLEND) {
     free(read_package);
-    printf("\nEnding...\n");
     return 0;
   } /*End of transfer process, nothing to process any further.*/
 
