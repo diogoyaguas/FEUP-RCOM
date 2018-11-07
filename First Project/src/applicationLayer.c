@@ -40,15 +40,21 @@ int getFile() {
 
 int sendData() {
 
+  gettimeofday(&start, NULL);
+
   if (sendControlPacket(CONTROLSTART) < 0) {
     printf("Error in sendControlPacket\n");
     return -1;
   }
 
+  st.msgSent++;
+
   int bytesRead = 0, seqNumber = 0;
   unsigned char * buffer = (unsigned char *) malloc(al.fragmentSize + 1);
 
   while ((bytesRead = read(al.fileDescriptor, buffer, al.fragmentSize)) > 0) {
+
+    st.msgSent++;
 
     if (sendPacket(seqNumber, buffer, bytesRead) < 0) {
       printf("Error in sendPacket\n");
@@ -65,6 +71,8 @@ int sendData() {
     return -1;
   }
 
+  st.msgSent++;
+
     if (close(al.fileDescriptor) < 0) {
     printf("Error closing the file.\n");
     return -1;
@@ -73,6 +81,8 @@ int sendData() {
   free(al.filename);
   free(buffer);
   llclose(al.fd, al.status);
+  gettimeofday(&end, NULL);
+  st.time = ((end.tv_sec * 1000000 + end.tv_usec) - (start.tv_sec * 1000000 + start.tv_usec))/10000;
   system("clear"); //*nix
   printf("<<< Finished >>>\n");
   return 0;
@@ -80,15 +90,21 @@ int sendData() {
 
 int receiveData() {
 
+  gettimeofday(&start, NULL);
+
   if (receiveControlPacket() < 0) {
     printf("error in receiveControlPacket\n");
     return -1;
   }
 
+  st.msgRcvd++;
+
   int bytesRead = 0, seqNumber = 0, counter = 0;
   unsigned char * buffer;
 
   while(counter < al.fileSize) {
+
+    st.msgRcvd++;
 
     bytesRead = receivePacket(&buffer, seqNumber);
     if(bytesRead < 0) {
@@ -110,6 +126,8 @@ int receiveData() {
     return -1;
   }
 
+  st.msgRcvd++;
+
     if (close(al.fileDescriptor) < 0) {
     printf("Error closing the file.\n");
     return -1;
@@ -118,6 +136,8 @@ int receiveData() {
   free(al.filename);
   free(al.file_data);
   llclose(al.fd, al.status);
+  gettimeofday(&end, NULL);
+  st.time = ((end.tv_sec * 1000000 + end.tv_usec) - (start.tv_sec * 1000000 + start.tv_usec));
   system("clear"); //*nix
   printf("<<< Finished >>>\n");
   return 0;
@@ -140,6 +160,7 @@ int sendControlPacket(unsigned char control_byte) {
   }
 
   off_t f_size = f_information.st_size; /* total size in bytes, in signed integer */
+  st.filesize = f_size;
   unsigned int l1 = sizeof(f_size);
   unsigned int l2 = strlen(al.filename) + 1;
 

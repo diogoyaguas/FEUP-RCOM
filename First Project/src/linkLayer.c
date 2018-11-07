@@ -259,8 +259,10 @@ void receiveRRREJ(int fd, unsigned char rr, unsigned char rej,
           ll.numRetransmissions = ll.maxRetransmissions;
           ll.retransmit = FALSE;
           if (controlByte == rr) {
+            st.rrRcvd++;
             printf("Received RR frame\n");
           } else if (controlByte == rej) {
+            st.rejRcvd++;
             printf("Received REJ frame\n");
           }
         } else
@@ -485,6 +487,7 @@ int llread(int fd, unsigned char **buffer) {
 
           if (!checkBCC(destuffed, length)) {
             printf("llread: sending REJ\n");
+            st.rejSent++;
             if (ll.sequenceNumber == 0) {
               setREJ0();
               sendSFrame(fd, ll.REJ, FALSE);
@@ -525,6 +528,7 @@ int llread(int fd, unsigned char **buffer) {
   }
 
   printf("llread: sending RR\n");
+  st.rrSent++;
   if (ll.sequenceNumber == 0) {
     setRR1();
     sendSFrame(fd, ll.RR, FALSE);

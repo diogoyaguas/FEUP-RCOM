@@ -1,4 +1,3 @@
-#include "utils.h"
 #include "linkLayer.h"
 
 #define CONTROLDATA  0x01
@@ -6,6 +5,8 @@
 #define CONTROLEND   0x03 // control byte in control packet with value end
 #define CONTROLT1    0x00 // file's size
 #define CONTROLT2    0x01 // file's name
+
+struct timeval start, end;
 
 struct applicationLayer {
 	int fileDescriptor; // file

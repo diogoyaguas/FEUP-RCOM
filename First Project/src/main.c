@@ -1,5 +1,4 @@
 /*Non-Canonical Input Processing*/
-#include "utils.h"
 #include "applicationLayer.h"
 
 #define MODEMDEVICE "/dev/ttyS1"
@@ -28,12 +27,14 @@ int main(int argc, char **argv) {
   } else printf("Usage:\tstatus\n\tex: status t");
 
   al.fragmentSize = getPacketSize();
+  st.packetSize = al.fragmentSize;
 
   baudRate = getBaudrate();
 
   al.fd = llopen(argv[1], al.status);
 
   ll.timeout = 3;
+  st.timeout = 3;
   ll.maxRetransmissions = 3;
   ll.numRetransmissions = ll.maxRetransmissions;
   ll.frameSLength = 5;
@@ -71,7 +72,7 @@ int main(int argc, char **argv) {
   system("clear"); //*nix
 
   if (al.status == RECEIVER) {
-    printf("<<< New termios structure set >>>\n");
+    printf("<<< New termios structure set >>>\n\n");
   } else
     printf("<<< New termios structure set >>>\n\nEstablishing conection...\n");
 
@@ -79,6 +80,8 @@ int main(int argc, char **argv) {
 
   // al do your thing
   go();
+
+  printStatistics(al.status);
 
   tcsetattr(al.fd, TCSANOW, &oldtio);
   close(al.fd);

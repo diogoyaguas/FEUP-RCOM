@@ -1,5 +1,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 #include <fcntl.h>
 #include <termios.h>
 #include <stdio.h>
@@ -13,6 +14,23 @@
 #define FALSE 0
 #define TRUE 1
 
+struct statistics {
+  char speed[20];
+  unsigned int timeout;
+  unsigned int packetSize;
+	unsigned int msgSent;
+	unsigned int msgRcvd;
+	unsigned int rrSent;
+	unsigned int rrRcvd;
+  unsigned int rejSent;
+  unsigned int rejRcvd;
+  int filesize;
+  int time;
+  int c;
+};
+
+struct statistics st;
+
 int getPacketSize();
 
 int IsPowerOfTwo(int x);
@@ -20,3 +38,5 @@ int IsPowerOfTwo(int x);
 int getBaudrate();
 
 int getBaudrateNumber(int choice);
+
+void printStatistics();
