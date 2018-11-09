@@ -235,6 +235,7 @@ int receiveControlPacket() {
       n_bytes = (unsigned int) read_package[pck_index++]; // read L1, update to V1
 
       al.fileSize = *((off_t *)(read_package + pck_index));
+      st.filesize = al.fileSize;     
       al.file_data = (unsigned char *) malloc(al.fileSize); /* Allocating file length not inicialized */
       pck_index += n_bytes; //update to T2
       break;

@@ -2,10 +2,10 @@
 
 int getPacketSize() {
 	int packetSize = -1;
-	while (packetSize <= 0 || packetSize > 1024) {
+	while (packetSize <= 127 || packetSize > 1024) {
         system("clear"); //*nix
 		printf("<<< What is the maximum packet size? >>>\n");
-        printf("[2, 4, 8, 16, 32, 64, 128, 256, 512, 1024]\n\n:::");
+        printf("[128, 256, 512, 1024]\n\n:::");
 		scanf("%d", &packetSize);
         if(IsPowerOfTwo(packetSize) -1) {
             packetSize = -1;
@@ -104,5 +104,5 @@ void printStatistics(int status) {
 	float r = (st.filesize*8)/(st.time);
 	printf("R: %.3f bits/s\n", r);
 	float s = (r/st.c);
-	printf("S: %.5f \n\n", s);
+	printf("S: %.3f \n\n", s);
 }
