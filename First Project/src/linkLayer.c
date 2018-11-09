@@ -370,12 +370,17 @@ unsigned char *byteDestuffing(unsigned char *data, unsigned int *length) {
   return newData;
 }
 
+int randomError() {
+
+  return ((random()%10) == 0) ? 1 : 0;
+}
+
 /*
 Pra mandar tramas i com a mensagem buffer no campo de dados
 */
 int llwrite(int fd, unsigned char *buffer, unsigned int length) {
   unsigned int totalLength = 6 + length;
-  unsigned char IFrame[totalLength], BCC2;
+  unsigned char IFrame[totalLength], BCC2, oldBCC;
 
   IFrame[0] = FLAG;
   IFrame[1] = TRANSMITTERSA; // só o emissor chama a llwrite (o recetor não
@@ -401,8 +406,13 @@ int llwrite(int fd, unsigned char *buffer, unsigned int length) {
   IFrame[totalLength - 1] = FLAG;
 
   unsigned char *stuffedFrame = byteStuffing(IFrame, &totalLength);
+
+  oldBCC = stuffedFrame[totalLength - 2];
+  stuffedFrame[totalLength - 2] += randomError();
   int res = write(fd, stuffedFrame, totalLength);
   printf("\nllwrite: sent I frame\n");
+
+  stuffedFrame[totalLength - 2] = oldBCC;
 
   alarm(ll.timeout);
 
