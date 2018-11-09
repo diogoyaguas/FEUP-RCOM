@@ -68,6 +68,20 @@ int getBaudrateNumber(int choice) {
 	}
 }
 
+void calculateTime() {
+
+	long seconds = finish.tv_sec - start.tv_sec;
+  long ns = finish.tv_nsec - start.tv_nsec;
+
+    if (start.tv_nsec > finish.tv_nsec) { // clock underflow
+			--seconds;
+			ns += 1000000000;
+    }
+  st.time = (double)seconds + ((double)ns/(double)1000000000); //calulate total time
+
+	return;
+}
+
 void printStatistics(int status) {
 	printf("\n");
 	printf("<<< Statistics >>>\n\n");
@@ -86,8 +100,8 @@ void printStatistics(int status) {
 }
 
 	printf("Filesize: %d bytes\n", st.filesize);
-	printf("Transfer time: %d ms\n", st.time);
-	float r = (st.filesize*8)/(st.time*1000);
+	printf("Transfer time: %.3f s\n", st.time);
+	float r = (st.filesize*8)/(st.time);
 	printf("R: %.3f bits/s\n", r);
 	float s = (r/st.c);
 	printf("S: %.5f \n\n", s);

@@ -1,6 +1,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/time.h>
+#include <time.h>
 #include <fcntl.h>
 #include <termios.h>
 #include <stdio.h>
@@ -25,11 +26,13 @@ struct statistics {
   unsigned int rejSent;
   unsigned int rejRcvd;
   int filesize;
-  int time;
+  float time;
   int c;
 };
 
 struct statistics st;
+
+ struct timespec start, finish;
 
 int getPacketSize();
 
@@ -38,5 +41,7 @@ int IsPowerOfTwo(int x);
 int getBaudrate();
 
 int getBaudrateNumber(int choice);
+
+void calculateTime();
 
 void printStatistics();

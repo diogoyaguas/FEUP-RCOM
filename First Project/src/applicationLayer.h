@@ -6,8 +6,6 @@
 #define CONTROLT1    0x00 // file's size
 #define CONTROLT2    0x01 // file's name
 
-struct timeval start, end;
-
 struct applicationLayer {
 	int fileDescriptor; // file
 	int fd; // serial port

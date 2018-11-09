@@ -40,7 +40,7 @@ int getFile() {
 
 int sendData() {
 
-  gettimeofday(&start, NULL);
+  clock_gettime(CLOCK_REALTIME, &start);
 
   if (sendControlPacket(CONTROLSTART) < 0) {
     printf("Error in sendControlPacket\n");
@@ -81,8 +81,9 @@ int sendData() {
   free(al.filename);
   free(buffer);
   llclose(al.fd, al.status);
-  gettimeofday(&end, NULL);
-  st.time = ((end.tv_sec * 1000000 + end.tv_usec) - (start.tv_sec * 1000000 + start.tv_usec))/10000;
+
+  clock_gettime(CLOCK_REALTIME, &finish);
+  calculateTime();
   system("clear"); //*nix
   printf("<<< Finished >>>\n");
   return 0;
@@ -90,7 +91,7 @@ int sendData() {
 
 int receiveData() {
 
-  gettimeofday(&start, NULL);
+  clock_gettime(CLOCK_REALTIME, &start);
 
   if (receiveControlPacket() < 0) {
     printf("error in receiveControlPacket\n");
@@ -136,8 +137,8 @@ int receiveData() {
   free(al.filename);
   free(al.file_data);
   llclose(al.fd, al.status);
-  gettimeofday(&end, NULL);
-  st.time = ((end.tv_sec * 1000000 + end.tv_usec) - (start.tv_sec * 1000000 + start.tv_usec));
+  clock_gettime(CLOCK_REALTIME, &finish);
+  calculateTime();
   system("clear"); //*nix
   printf("<<< Finished >>>\n");
   return 0;
