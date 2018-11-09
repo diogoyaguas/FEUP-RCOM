@@ -77,7 +77,7 @@ void calculateTime() {
 			--seconds;
 			ns += 1000000000;
     }
-  st.time = (double)seconds + ((double)ns/(double)1000000000); //calulate total time
+  st.time = (double)seconds + (double)ns/(double)1e9; //calulate total time
 
 	return;
 }
