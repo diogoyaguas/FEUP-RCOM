@@ -370,10 +370,6 @@ unsigned char *byteDestuffing(unsigned char *data, unsigned int *length) {
   return newData;
 }
 
-int randomError() {
-
-  return ((random()%10) == 0) ? 1 : 0;
-}
 
 /*
 Pra mandar tramas i com a mensagem buffer no campo de dados
@@ -408,7 +404,6 @@ int llwrite(int fd, unsigned char *buffer, unsigned int length) {
   unsigned char *stuffedFrame = byteStuffing(IFrame, &totalLength);
 
   oldBCC = stuffedFrame[totalLength - 2];
-  stuffedFrame[totalLength - 2] += randomError();
   int res = write(fd, stuffedFrame, totalLength);
   printf("\nllwrite: sent I frame\n");
 
