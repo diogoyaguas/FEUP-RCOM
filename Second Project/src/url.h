@@ -17,4 +17,7 @@ struct UniformResourceLocator {
 
 struct UniformResourceLocator url;
 
+int parseURL(char * url);
+int getIpByHost(struct UniformResourceLocator *url);
+
 #endif /* __URL_H */
