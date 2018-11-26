@@ -1,6 +1,6 @@
 #include "url.h"
 
-int getIpByHost(url *url)
+int getIpByHost(struct UniformResourceLocator *url)
 {
 
     struct hostent *h;
