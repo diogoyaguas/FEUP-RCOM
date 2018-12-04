@@ -3,11 +3,11 @@
 void initURL()
 {
 
-	memset(url.user, 0, sizeof(url_content));
-	memset(url.password, 0, sizeof(url_content));
-	memset(url.host, 0, sizeof(url_content));
-	memset(url.path, 0, sizeof(url_content));
-	memset(url.filename, 0, sizeof(url_content));
+	memset(url.user, 0, 256);
+	memset(url.password, 0, 256);
+	memset(url.host, 0, 256);
+	memset(url.path, 0, 256);
+	memset(url.filename, 0, 256);
 	url.port = 21;
 }
 

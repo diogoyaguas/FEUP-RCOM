@@ -19,6 +19,4 @@
 
 #define h_addr h_addr_list[0] /* for backward compatibility */
 
-typedef char url_content[256];
-
 #endif /* __UTILS_H */
