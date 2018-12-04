@@ -5,7 +5,8 @@
 
 /* Struct URL is responsible for the process of the URL passed through the command line */
 
-struct UniformResourceLocator {
+struct UniformResourceLocator
+{
     char user[256];
     char password[256];
     char host[256];
@@ -17,7 +18,8 @@ struct UniformResourceLocator {
 
 struct UniformResourceLocator url;
 
-int parseURL(char * url);
-int getIpByHost(struct UniformResourceLocator *url);
+void initURL();
+int parseURL(const char *str);
+int getIpByHost();
 
 #endif /* __URL_H */
