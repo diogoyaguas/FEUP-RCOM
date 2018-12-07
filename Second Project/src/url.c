@@ -1,36 +1,21 @@
 #include "url.h"
 
-void initURL()
-{
+int parseURL(const char *str) {
+	char copy[50];
+	char current_substr[20];
 
-	memset(url.user, 0, 256);
-	memset(url.password, 0, 256);
-	memset(url.host, 0, 256);
-	memset(url.path, 0, 256);
-	memset(url.filename, 0, 256);
-	url.port = 21;
-}
+	strcpy(copy, str); // whole url
+	strncpy(current_substr, copy, 6); // ftp://
 
-int parseURL(const char *str)
-{
-
-	int mode;
-	char* activeExpression;
-	char* tempURL = (char*) malloc(strlen(str));
-
-	memcpy(tempURL, str, strlen(str));
-
-	if (tempURL[6] == '[') {
-		mode = 1; //normal
-	} else if(tempURL[6] == '<') {
-		mode = 0; //anonymous
-	} else return -1;
+	if(strcmp(current_substr, "ftp://") != 0) {
+		printf("URL must start with ftp://\n");
+		return -1;
+	}
 
 	return 0;
 }
 
-int getIpByHost()
-{
+int getIpByHost() {
 
 	struct hostent *h;
 

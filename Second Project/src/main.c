@@ -8,16 +8,12 @@ int main(int argc, char *argv[])
   if (argc != 2)
   {
     printf("Wrong number of arguments.\n");
-    printf("Usage: <application executer> ftp://[<user>:<password>@]<host>/<url-path>\nExiting...\n");
+    printf("Usage: %s ftp://[<user>:<password>@]<host>/<url-path>\nExiting...\n", argv[0]);
     return -1;
   }
 
-  // initializes url struct
-  initURL();
-
   // start parsing first argument to URL components
-  if (parseURL(argv[1]) < 0)
-  {
+  if (parseURL(argv[1]) < 0) {
     printf("Invalid URL.\n");
     printf("Usage: <application executer> ftp://[<user>:<password>@]<host>/<url-path>\nExiting... \n");
     return -1;

@@ -18,7 +18,7 @@ struct UniformResourceLocator
 
 struct UniformResourceLocator url;
 
-void initURL();
+/* parses URL and sets the struct*/
 int parseURL(const char *str);
 int getIpByHost();
 
