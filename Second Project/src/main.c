@@ -19,11 +19,10 @@ int main(int argc, char *argv[])
     return -1;
   }
 
-  if (getIpByHost() < 0)
-  {
-    printf("Cannot find ip to hostname %s.\n", url.host);
-    return -1;
-  }
+  // if (getIpByHost() < 0) {
+  //   printf("Cannot find ip to hostname %s.\n", url.host);
+  //   return -1;
+  // }
 
   return 0;
 }
