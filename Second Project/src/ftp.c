@@ -25,5 +25,12 @@ int main(int argc, char *argv[]) {
   printf("Filename: %s\n", url.filename);
   printf("IP address: %s\n\n", url.ip);
 
+  if (connect_to_server(url.ip) < 0) {
+    return -1;
+  }
+  else {
+    printf("Successful socket\n");
+  }
+
   return 0;
 }
