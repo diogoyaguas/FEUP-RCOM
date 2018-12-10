@@ -30,11 +30,16 @@ int main(int argc, char *argv[]) {
   printf("Filename: %s\n", url.filename);
   printf("IP address: %s\n\n", url.ip);
 
-  if (connect_to_server(url.ip) < 0) {
+  tcp.control_socket_fd = connect_to_server(url.ip, 21);
+  if (tcp.control_socket_fd < 0) {
     return -1;
   }
 
   if(login(url.user, url.password) < 0) {
+    return -1;
+  }
+
+  if(enter_passive_mode() < 0) {
     return -1;
   }
 
