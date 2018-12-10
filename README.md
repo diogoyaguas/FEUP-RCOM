@@ -15,8 +15,3 @@ Joana Sofia Mendes Ramos
 * E-Mail: up201605017@fe.up.pt
 
 ### Grades
-
-
-# Faz log out dos PC's
-# É facil, basta clicar no botão de log out
-![peanut](https://i.imgur.com/KOXOBiN.gif)
