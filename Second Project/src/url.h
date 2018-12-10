@@ -21,8 +21,8 @@ struct UniformResourceLocator url;
 /* parses URL and sets the struct's user, password, host and path*/
 int parseURL(const char *str);
 /* retrieves ip through host's name and sets the struct's ip */
-int getIpByHost(const char *host);
+int get_ip_by_host(const char *host);
 /* retrieves the filename through its entire path */
-int getFilename(const char * path);
+int get_filename(const char * path);
 
 #endif /* __URL_H */

@@ -4,7 +4,7 @@ COMPILER_TYPE = gnu
 CC = gcc
 
 PROG = rcom
-SRCS = main.c ftp.c url.c
+SRCS = ftp.c tcp.c url.c
 
 CFLAGS= -Wall -g
 

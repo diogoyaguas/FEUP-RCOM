@@ -46,15 +46,17 @@ int parseURL(const char *str) {
 		j++;
 	}
 
-	printf("user: %s\n", url.user);
-	printf("password: %s\n", url.password);
-	printf("host: %s\n", url.host);
-	printf("path: %s\n", url.path);
+	get_filename(url.path);
+
+	if (get_ip_by_host(url.host) < 0) {
+		printf("Cannot find ip to hostname %s.\n", url.host);
+		return -1;
+	}
 
 	return 0;
 }
 
-int getIpByHost(const char * host) {
+int get_ip_by_host(const char * host) {
 
 	struct hostent *h;
 
@@ -77,12 +79,10 @@ int getIpByHost(const char * host) {
 	char *ip = inet_ntoa(*((struct in_addr *)h->h_addr));
 	strcpy(url.ip, ip);
 
-	printf("IP address: %s\n", url.ip);
-
 	return 0;
 }
 
-int getFilename(const char * path) {
+int get_filename(const char * path) {
 	int i, j=0;
 	char filename[256];
 	size_t length = strlen(path);
@@ -104,8 +104,6 @@ int getFilename(const char * path) {
 		filename[j] = path[i];
 		j++;
 	}
-
-	printf("Filename: %s\n", url.filename);
 
 	return 0;
 }
