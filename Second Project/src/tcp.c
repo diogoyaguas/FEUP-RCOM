@@ -21,20 +21,58 @@ int connect_to_server(char * ip) {
     return -1;
   }
 
-  read_reply();
+  if(read_reply()) {
+    printf("Error reading from socket\n");
+    return -1;
+  }
+
+  return 0;
+}
+
+int login(char * user, char * password) {
+  char username_cmd[MAX_SIZE];
+  char password_cmd[MAX_SIZE];
+
+  // username
+  sprintf(username_cmd, "USER %s\r\n", user);
+  printf("%s\n", username_cmd);
+  if (write_to_server(username_cmd) < 0) {
+    printf("Error writing username command to server\n");
+    return -1;
+  }
+
+  if (read_reply()) {
+    printf("Error reading reply from the server\n");
+    return -1;
+  }
+
+  // password
+  sprintf(password_cmd, "PASS %s\r\n", user);
+  printf("%s\n", password_cmd);
+  if (write_to_server(password_cmd) < 0) {
+    printf("Error writing password command to server\n");
+    return -1;
+  }
+
+  if (read_reply()) {
+    printf("Error reading reply from the server\n");
+    return -1;
+  }
 
   return 0;
 }
 
 int read_reply() {
-  char buffer[256];
+  FILE * fp = fdopen(tcp.socket_fd, "r");
+  char str[MAX_SIZE];
 
-  int res = read(tcp.socket_fd, buffer, 256);
+	do {
+		memset(str, 0, MAX_SIZE);
+		fgets(str, MAX_SIZE, fp); // reads a line
+		printf("%s", str);
+	} while (!('1' <= str[0] && str[0] <= '5') || str[3] != ' ');
 
-  printf("Reply: %s\n", buffer);
-  printf("Bytes lidos: %d\n\n", res);
-
-  return res;
+  return str[0] >= '4';
 }
 
 int write_to_server(char * cmd) {

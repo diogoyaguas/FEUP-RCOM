@@ -1,6 +1,11 @@
 #include "url.h"
 #include "tcp.h"
 
+/*
+EXEMPLO PARA TESTAR:
+./rcom ftp://anonymous:@ftp.up.pt/debian/README
+*/
+
 int main(int argc, char *argv[]) {
 
   //ftp://[<user>:<password>@]<host>/<url-path>
@@ -28,8 +33,9 @@ int main(int argc, char *argv[]) {
   if (connect_to_server(url.ip) < 0) {
     return -1;
   }
-  else {
-    printf("Successful socket\n");
+
+  if(login(url.user, url.password) < 0) {
+    return -1;
   }
 
   return 0;
