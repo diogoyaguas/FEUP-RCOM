@@ -1,7 +1,6 @@
 #include "tcp.h"
 
 int connect_to_server(char * ip, int port) {
-  char buffer[MAX_SIZE];
 	struct	sockaddr_in server_addr;
   int fd;
 
@@ -20,11 +19,6 @@ int connect_to_server(char * ip, int port) {
   /* connect to the server */
   if(connect(fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0){
     perror("connect()");
-    return -1;
-  }
-
-  if(read_reply(fd, buffer)) {
-    printf("Error reading from socket\n");
     return -1;
   }
 
@@ -89,17 +83,36 @@ int enter_passive_mode() {
 
   // gather ip and new port
 
-  sprintf(tcp.ip, "%d.%d.%d.%d", ip1, ip2, ip3, ip4);
+  sprintf(tcp.new_ip, "%d.%d.%d.%d", ip1, ip2, ip3, ip4);
   tcp.new_port = port1 * 256 + port2;
 
-  printf("IP: %s\n", tcp.ip);
+  printf("IP: %s\n", tcp.new_ip);
   printf("New port: %d\n", tcp.new_port);
 
-  // tcp.data_socket_fd = connect_to_server(tcp.ip, tcp.new_port);
-  // if (tcp.data_socket_fd < 0) {
-  // 		printf("Error connecting to the server\n");
-  // 		return -1;
-  // }
+  tcp.data_socket_fd = connect_to_server(tcp.new_ip, tcp.new_port);
+  if (tcp.data_socket_fd < 0) {
+  		printf("Error connecting to the server\n");
+  		return -1;
+  }
+
+  return 0;
+}
+
+int retrieve(char * path) {
+  char retr_cmd[MAX_SIZE], buffer[MAX_SIZE];
+
+  sprintf(retr_cmd, "RETR %s\r\n", path);
+  printf(">%s",retr_cmd);
+
+  if(write_to_server(tcp.control_socket_fd, retr_cmd) < 0) {
+    printf("Error writing RETR command\n");
+    return -1;
+  }
+
+  if(read_reply(tcp.control_socket_fd, buffer) != 0){
+    printf("Error reading reply to RETR command\n");
+    return -1;
+  }
 
   return 0;
 }
@@ -109,7 +122,9 @@ int read_reply(int socket_fd, char * buf) {
 
 	do {
 		memset(buf, 0, MAX_SIZE);
-		fgets(buf, MAX_SIZE, fp); // reads a line
+		if(fgets(buf, MAX_SIZE, fp) == NULL){ // reads a line
+      printf("fgets returned null\n");
+    }
 		printf("%s", buf);
 	} while (!('1' <= buf[0] && buf[0] <= '5') || buf[3] != ' ');
 

@@ -18,6 +18,6 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#define h_addr h_addr_list[0] /* for backward compatibility */
+#define MAX_SIZE 1024
 
 #endif /* __UTILS_H */

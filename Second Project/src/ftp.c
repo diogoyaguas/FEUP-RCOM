@@ -34,12 +34,21 @@ int main(int argc, char *argv[]) {
   if (tcp.control_socket_fd < 0) {
     return -1;
   }
+  char buffer[MAX_SIZE];
+  if(read_reply(tcp.control_socket_fd, buffer)) {
+    printf("Error reading from socket\n");
+    return -1;
+  }
 
   if(login(url.user, url.password) < 0) {
     return -1;
   }
 
   if(enter_passive_mode() < 0) {
+    return -1;
+  }
+
+  if(retrieve(url.path) < 0){
     return -1;
   }
 

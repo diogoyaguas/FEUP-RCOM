@@ -3,14 +3,12 @@
 
 #include "utils.h"
 
-#define MAX_SIZE 1024
-
 /* Struct FTP is responsible for transfer files online */
 
 struct TCP {
     int control_socket_fd;
     int data_socket_fd;
-    char ip[MAX_SIZE];
+    char new_ip[MAX_SIZE];
     int new_port;
 };
 
@@ -24,4 +22,5 @@ int write_to_server(int socket_fd, char * cmd);
 int read_reply(int socket_fd, char * buf);
 int login(char * user, char * password);
 int enter_passive_mode();
+int retrieve(char * path);
 #endif /* __TCP_H */
