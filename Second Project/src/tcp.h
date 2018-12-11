@@ -23,4 +23,6 @@ int read_reply(int socket_fd, char * buf);
 int login(char * user, char * password);
 int enter_passive_mode();
 int retrieve(char * path);
+int download(char * filename);
+int disconnect_all();
 #endif /* __TCP_H */

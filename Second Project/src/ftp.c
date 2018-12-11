@@ -30,6 +30,7 @@ int main(int argc, char *argv[]) {
   printf("Filename: %s\n", url.filename);
   printf("IP address: %s\n\n", url.ip);
 
+  // connect to server
   tcp.control_socket_fd = connect_to_server(url.ip, 21);
   if (tcp.control_socket_fd < 0) {
     return -1;
@@ -40,17 +41,32 @@ int main(int argc, char *argv[]) {
     return -1;
   }
 
+  // login
   if(login(url.user, url.password) < 0) {
     return -1;
   }
 
+  // go into passive mode
   if(enter_passive_mode() < 0) {
     return -1;
   }
 
+  // retrieve file in one end of the link
   if(retrieve(url.path) < 0){
     return -1;
   }
+
+  // download file in the other end
+  if(download(url.filename) < 0) {
+    return -1;
+  }
+
+  // disconnect sockets
+  if(disconnect_all() < 0) {
+    return -1;
+  }
+
+  printf("Terminating...\n");
 
   return 0;
 }

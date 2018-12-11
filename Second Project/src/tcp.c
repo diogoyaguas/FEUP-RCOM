@@ -44,7 +44,7 @@ int login(char * user, char * password) {
   }
 
   // password
-  sprintf(password_cmd, "PASS %s\r\n", user);
+  sprintf(password_cmd, "PASS %s\r\n", password);
   printf("%s\n", password_cmd);
   if (write_to_server(tcp.control_socket_fd, password_cmd) < 0) {
     printf("Error writing PASS command\n");
@@ -117,14 +117,67 @@ int retrieve(char * path) {
   return 0;
 }
 
+int download(char * filename){
+  FILE* dest_file;
+  if(!(dest_file = fopen(filename, "w"))) {
+		printf("Error opening file %s for writing\n", filename);
+		return -1;
+	}
+
+  char buffer[MAX_SIZE];
+  int res;
+  while ((res = read(tcp.data_socket_fd, buffer, MAX_SIZE))) {
+    if (res < 0) {
+      fprintf(stderr, "Error reading from data socket while downloading\n");
+      return -1;
+    }
+
+    if ((res = fwrite(buffer, res, 1, dest_file)) < 0) {
+      fprintf(stderr, "Error writing to the requested file\n");
+      return -1;
+    }
+  }
+
+	if(read_reply(tcp.control_socket_fd, buffer)) {
+		printf("Error reading reply\n");
+		return -1;
+	}
+
+  fclose(dest_file);
+  printf("Finished downloading requested file\n");
+  return 0;
+}
+
+int disconnect_all() {
+	char quit_cmd[MAX_SIZE], buffer[MAX_SIZE];
+
+	// issue command
+	sprintf(quit_cmd, "QUIT\r\n");
+	if(write_to_server(tcp.control_socket_fd, quit_cmd) < 0) {
+		printf("Error writing QUIT command to server\n");
+		return -1;
+	}
+
+	if(read_reply(tcp.control_socket_fd, buffer)) {
+		printf("Error reading reply to QUIT command\n");
+		return -1;
+	}
+
+	if(close(tcp.control_socket_fd) < 0 || close(tcp.data_socket_fd)){
+		printf("Error closing sockets\n");
+		return -1;
+	}
+
+	printf("\nDisconnected sockets\n");
+	return 0;
+}
+
 int read_reply(int socket_fd, char * buf) {
   FILE * fp = fdopen(socket_fd, "r");
 
 	do {
 		memset(buf, 0, MAX_SIZE);
-		if(fgets(buf, MAX_SIZE, fp) == NULL){ // reads a line
-      printf("fgets returned null\n");
-    }
+		fgets(buf, MAX_SIZE, fp); // reads a line
 		printf("%s", buf);
 	} while (!('1' <= buf[0] && buf[0] <= '5') || buf[3] != ' ');
 
