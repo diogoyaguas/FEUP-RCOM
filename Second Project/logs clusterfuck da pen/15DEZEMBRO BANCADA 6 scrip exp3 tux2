@@ -1,0 +1,9 @@
+route add -net 172.16.60.0/24 gw 172.16.61.253
+route -n
+arp -a
+arp -d 172.16.61.253
+
+
+
+
+route add default gw 172.16.61.254
