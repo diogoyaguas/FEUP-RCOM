@@ -15,3 +15,5 @@ Joana Sofia Mendes Ramos
 * E-Mail: up201605017@fe.up.pt
 
 ### Grades
+* First Project: 18.6
+* Second Project: 15.2
